@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Power of the Digital Footprint</title>
+
+  <!--
+  ============================================================
+  FONTS
+  Space Grotesk  → headings, scene titles, bold statements
+  Inter          → body copy, UI labels, data readouts
+  Both loaded from Google Fonts for zero file-size overhead.
+  ============================================================
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!--
+  ============================================================
+  GSAP CORE  (free CDN build, version 3.12)
+  We load four modules:
+    gsap.min.js      → core tweening engine
+    ScrollTrigger    → not used for scroll but useful for
+                       time-based triggers in a timeline
+    TextPlugin       → animates text character by character
+                       (typewriter effect in Scenes 6 & 9)
+    DrawSVGPlugin    → NOT in free tier; we replicate it
+                       using stroke-dashoffset technique in
+                       animations.js (fully documented there)
+  ============================================================
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/TextPlugin.min.js"></script>
+
+  <!-- Our stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+
+  <!--
+  ============================================================
+  ROOT WRAPPER
+  #app is the outermost container. It maintains the 9:16
+  portrait aspect ratio (1080×1920 = 9:16) regardless of
+  screen size. Everything is positioned inside this box.
+  ============================================================
+  -->
+  <div id="app">
+
+    <!--
+    ==========================================================
+    PERSISTENT BACKGROUND LAYER
+    Sits behind ALL scenes. Contains:
+      • Animated gradient orbs (slow-moving, always present)
+      • The particle canvas (tiny floating dots)
+      • The "footprint trail" line that connects scenes
+    ==========================================================
+    -->
+    <div id="bg-layer">
+      <!-- Slow-drifting gradient orbs — purely decorative depth -->
+      <div class="bg-orb bg-orb--blue"  aria-hidden="true"></div>
+      <div class="bg-orb bg-orb--purple" aria-hidden="true"></div>
+      <div class="bg-orb bg-orb--teal"  aria-hidden="true"></div>
+
+      <!--
+      Canvas for the floating particle system.
+      Drawn by particleSystem() in animations.js.
+      Uses requestAnimationFrame for smooth 60fps rendering.
+      -->
+      <canvas id="particle-canvas" aria-hidden="true"></canvas>
+    </div>
+
+    <!--
+    ==========================================================
+    SCENE CONTAINER
+    Every scene is a <section> with:
+      • class="scene"            → base scene styles
+      • id="scene-N"             → targeted by scenes.js
+      • data-scene="N"           → used by the timeline controller
+      • aria-label="Scene name"  → screen reader context
+
+    All scenes start with opacity:0 visibility:hidden.
+    The GSAP master timeline reveals them one at a time.
+    ==========================================================
+    -->
+    <main id="scene-container">
+
+      <!-- ── SCENE 1 ── The Resurfaced Post (0:00–0:38) -->
+      <section class="scene" id="scene-1" data-scene="1" aria-label="The Resurfaced Post">
+
+        <!-- Floating phone silhouette — SVG injected by scenes.js -->
+        <div class="scene__phone-wrap" id="s1-phone"></div>
+
+        <!--
+        Notification burst layer.
+        Individual .notif elements are created dynamically in
+        scenes.js using a loop, so we can stagger them with GSAP.
+        -->
+        <div class="scene__notifs" id="s1-notifs" aria-hidden="true"></div>
+
+        <!-- Ripple rings that pulse outward from the phone -->
+        <div class="scene__ripples" id="s1-ripples" aria-hidden="true">
+          <div class="ripple ripple--1"></div>
+          <div class="ripple ripple--2"></div>
+          <div class="ripple ripple--3"></div>
+          <div class="ripple ripple--4"></div>
+        </div>
+
+        <!-- Connecting line that appears at end of scene -->
+        <div class="scene__connector" id="s1-connector" aria-hidden="true"></div>
+      </section>
+
+      <!-- ── SCENE 2 ── What Is a Digital Footprint? (0:38–1:20) -->
+      <section class="scene" id="scene-2" data-scene="2" aria-label="What Is a Digital Footprint">
+
+        <!-- Walking figure SVG — injected by scenes.js -->
+        <div class="scene__figure-wrap" id="s2-figure"></div>
+
+        <!-- Footprint trail — icons appear here as narrator speaks -->
+        <div class="scene__footprint-trail" id="s2-trail" aria-hidden="true"></div>
+
+        <!-- Icon labels that bloom from each footprint -->
+        <div class="scene__icons" id="s2-icons" aria-hidden="true"></div>
+
+        <!-- Scene title label -->
+        <div class="scene__label" id="s2-label">
+          <span class="label__eyebrow">Digital Footprint</span>
+          <span class="label__term">Every trace you leave online</span>
+        </div>
+      </section>
+
+      <!-- ── SCENE 3 ── Active vs Passive (1:20–2:00) -->
+      <section class="scene" id="scene-3" data-scene="3" aria-label="Active vs Passive Digital Footprints">
+
+        <!-- Left half: Active -->
+        <div class="scene__half scene__half--left" id="s3-active">
+          <div class="half__badge half__badge--active">Active</div>
+          <div class="half__icons" id="s3-active-icons" aria-hidden="true"></div>
+        </div>
+
+        <!-- Animated vertical divider line -->
+        <div class="scene__divider" id="s3-divider" aria-hidden="true">
+          <svg width="2" height="100%" viewBox="0 0 2 800" preserveAspectRatio="none">
+            <line id="s3-divider-line" x1="1" y1="0" x2="1" y2="800"
+                  stroke="rgba(255,255,255,0.2)" stroke-width="2"
+                  stroke-dasharray="800" stroke-dashoffset="800"/>
+          </svg>
+        </div>
+
+        <!-- Right half: Passive -->
+        <div class="scene__half scene__half--right" id="s3-passive">
+          <div class="half__badge half__badge--passive">Passive</div>
+          <div class="half__icons" id="s3-passive-icons" aria-hidden="true"></div>
+        </div>
+
+        <!-- Merge circle that appears at end of scene -->
+        <div class="scene__merge" id="s3-merge" aria-hidden="true">
+          <svg viewBox="0 0 200 200" width="200" height="200">
+            <circle cx="100" cy="100" r="80"
+                    fill="none" stroke="url(#mergeGrad)" stroke-width="2"/>
+            <defs>
+              <linearGradient id="mergeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="var(--color-blue)"/>
+                <stop offset="100%" stop-color="var(--color-purple)"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </section>
+
+      <!-- ── SCENE 4 ── Digital Permanence (2:00–2:40) -->
+      <section class="scene" id="scene-4" data-scene="4" aria-label="Digital Permanence">
+
+        <!-- The original post card -->
+        <div class="scene__post-card" id="s4-post">
+          <div class="post-card__header">
+            <div class="post-card__avatar"></div>
+            <div class="post-card__meta">
+              <span class="post-card__name">@yourname</span>
+              <span class="post-card__time">3 years ago</span>
+            </div>
+          </div>
+          <div class="post-card__body">Just posted something online… 📱</div>
+          <div class="post-card__delete-btn" id="s4-delete-btn">
+            <!-- Trash icon injected by scenes.js -->
+          </div>
+        </div>
+
+        <!-- The five "copy" destination icons, arranged radially -->
+        <div class="scene__copies" id="s4-copies" aria-hidden="true">
+          <!-- Each .copy-node is positioned absolutely by CSS and animated by GSAP -->
+          <div class="copy-node" id="s4-copy-download" data-label="Downloaded">
+            <div class="copy-node__icon"></div>
+            <span class="copy-node__label">Downloaded</span>
+          </div>
+          <div class="copy-node" id="s4-copy-clipboard" data-label="Copied">
+            <div class="copy-node__icon"></div>
+            <span class="copy-node__label">Copied</span>
+          </div>
+          <div class="copy-node" id="s4-copy-archive" data-label="Archived">
+            <div class="copy-node__icon"></div>
+            <span class="copy-node__label">Archived</span>
+          </div>
+          <div class="copy-node" id="s4-copy-screenshot" data-label="Screenshot">
+            <div class="copy-node__icon"></div>
+            <span class="copy-node__label">Screenshot</span>
+          </div>
+          <div class="copy-node" id="s4-copy-cloud" data-label="Cloud backup">
+            <div class="copy-node__icon"></div>
+            <span class="copy-node__label">Cloud backup</span>
+          </div>
+        </div>
+
+        <!-- "DELETED" stamp overlay -->
+        <div class="scene__stamp" id="s4-stamp" aria-hidden="true">DELETED</div>
+      </section>
+
+      <!-- ── SCENE 5 ── The Ink Drop Metaphor (2:40–3:20) -->
+      <section class="scene" id="scene-5" data-scene="5" aria-label="The Ink Drop Metaphor">
+
+        <!-- SVG ink + glass animation — fully self-contained SVG -->
+        <div class="scene__ink-wrap" id="s5-ink-wrap"></div>
+
+        <!-- Network diagram that replaces the glass -->
+        <div class="scene__network" id="s5-network" aria-hidden="true">
+          <canvas id="network-canvas"></canvas>
+        </div>
+
+        <!-- "Digital Permanence" label -->
+        <div class="scene__label scene__label--center" id="s5-label">
+          <span class="label__term label__term--large">Digital Permanence</span>
+          <span class="label__eyebrow">Once shared — it spreads</span>
+        </div>
+      </section>
+
+      <!-- ── SCENE 6 ── Universities & Employers (3:20–4:00) -->
+      <section class="scene" id="scene-6" data-scene="6" aria-label="Universities and Employers Are Watching">
+
+        <!-- Profile / CV card -->
+        <div class="scene__profile-card" id="s6-profile">
+          <div class="profile__avatar-ring">
+            <div class="profile__avatar"></div>
+          </div>
+          <div class="profile__name">Your Name</div>
+          <div class="profile__handle">@yourhandle</div>
+        </div>
+
+        <!-- Orbiting institution icons -->
+        <div class="scene__orbit" id="s6-orbit" aria-hidden="true">
+          <div class="orbit-icon" id="s6-uni"    data-label="University">🎓</div>
+          <div class="orbit-icon" id="s6-emp"    data-label="Employer">💼</div>
+          <div class="orbit-icon" id="s6-grant"  data-label="Scholarship">🏆</div>
+          <div class="orbit-icon" id="s6-biz"    data-label="Business">🤝</div>
+        </div>
+
+        <!-- Search bar mockup -->
+        <div class="scene__search" id="s6-search">
+          <div class="search__bar">
+            <span class="search__icon">🔍</span>
+            <span class="search__text" id="s6-search-text"></span>
+            <span class="search__cursor">|</span>
+          </div>
+          <div class="search__results" id="s6-results">
+            <div class="search-result search-result--normal">LinkedIn profile</div>
+            <div class="search-result search-result--normal">University page</div>
+            <div class="search-result search-result--warning" id="s6-flagged">
+              <span>Old social media post</span>
+              <span class="result__flag">⚠</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SCENE 7 ── People Grow & Change (4:00–4:25) -->
+      <section class="scene" id="scene-7" data-scene="7" aria-label="People Grow and Change">
+
+        <!-- Horizontal timeline bar -->
+        <div class="scene__timeline" id="s7-timeline">
+          <div class="timeline__track">
+            <div class="timeline__fill" id="s7-fill"></div>
+          </div>
+          <div class="timeline__dots">
+            <div class="timeline__dot" id="s7-dot-1"></div>
+            <div class="timeline__dot" id="s7-dot-2"></div>
+            <div class="timeline__dot" id="s7-dot-3"></div>
+          </div>
+        </div>
+
+        <!-- Before / after figures -->
+        <div class="scene__figures" id="s7-figures">
+          <div class="figure figure--past" id="s7-past">
+            <div class="figure__icon">👤</div>
+            <span class="figure__label">Past self</span>
+          </div>
+          <div class="figure figure--present" id="s7-present">
+            <div class="figure__icon">🧑‍💼</div>
+            <span class="figure__label">Present self</span>
+          </div>
+        </div>
+
+        <!-- Key word that punches in -->
+        <div class="scene__keyword" id="s7-keyword">credibility</div>
+      </section>
+
+      <!-- ── SCENE 8 ── Positive Digital Footprint (4:25–5:00) -->
+      <section class="scene" id="scene-8" data-scene="8" aria-label="Building a Positive Digital Footprint">
+
+        <!-- Central node -->
+        <div class="scene__center-node" id="s8-center">
+          <div class="center-node__ring"></div>
+          <div class="center-node__icon">+</div>
+        </div>
+
+        <!-- Six positive content cards arranged in a radial bloom -->
+        <div class="scene__bloom" id="s8-bloom" aria-hidden="true">
+          <div class="bloom-card" id="s8-achieve"  data-angle="0">
+            <span class="bloom-card__icon">🏆</span>
+            <span class="bloom-card__label">Achievements</span>
+          </div>
+          <div class="bloom-card" id="s8-volunteer" data-angle="60">
+            <span class="bloom-card__icon">🤲</span>
+            <span class="bloom-card__label">Volunteering</span>
+          </div>
+          <div class="bloom-card" id="s8-creative" data-angle="120">
+            <span class="bloom-card__icon">🎨</span>
+            <span class="bloom-card__label">Creative work</span>
+          </div>
+          <div class="bloom-card" id="s8-research" data-angle="180">
+            <span class="bloom-card__icon">🔬</span>
+            <span class="bloom-card__label">Research</span>
+          </div>
+          <div class="bloom-card" id="s8-career"   data-angle="240">
+            <span class="bloom-card__icon">📈</span>
+            <span class="bloom-card__label">Career growth</span>
+          </div>
+          <div class="bloom-card" id="s8-discuss"  data-angle="300">
+            <span class="bloom-card__icon">💬</span>
+            <span class="bloom-card__label">Discussions</span>
+          </div>
+        </div>
+
+        <!-- Sparkle particles (small SVG dots created in animations.js) -->
+        <div class="scene__sparkles" id="s8-sparkles" aria-hidden="true"></div>
+      </section>
+
+      <!-- ── SCENE 9 ── Think Before You Post (5:00–5:30) -->
+      <section class="scene" id="scene-9" data-scene="9" aria-label="Think Before You Post">
+
+        <!-- Phone mockup with post draft -->
+        <div class="scene__phone-ui" id="s9-phone">
+          <div class="phone-ui__screen">
+            <div class="phone-ui__status-bar">9:41 AM</div>
+            <div class="phone-ui__post-area">
+              <div class="phone-ui__draft">What's on your mind?</div>
+            </div>
+            <div class="phone-ui__post-btn" id="s9-post-btn">POST</div>
+          </div>
+        </div>
+
+        <!-- Three questions that appear above the phone -->
+        <div class="scene__questions" id="s9-questions">
+          <div class="question-row" id="s9-q1">
+            <div class="question-row__check" data-answer="ask"></div>
+            <span class="question-row__text">Would my family be comfortable seeing this?</span>
+          </div>
+          <div class="question-row" id="s9-q2">
+            <div class="question-row__check" data-answer="ask"></div>
+            <span class="question-row__text">Would a future employer be comfortable seeing this?</span>
+          </div>
+          <div class="question-row" id="s9-q3">
+            <div class="question-row__check" data-answer="ask"></div>
+            <span class="question-row__text">Will I still be proud of this in 5 years?</span>
+          </div>
+        </div>
+
+        <!-- "Reconsider" label that appears if any answer is No -->
+        <div class="scene__reconsider" id="s9-reconsider">
+          Reconsider before posting
+        </div>
+      </section>
+
+      <!-- ── SCENE 10 ── Technology Is a Tool (5:30–6:05) -->
+      <section class="scene" id="scene-10" data-scene="10" aria-label="Technology Is a Tool">
+
+        <!-- Hand holding a glowing device -->
+        <div class="scene__device-wrap" id="s10-device-wrap">
+          <!-- SVG injected by scenes.js -->
+        </div>
+
+        <!-- Four radiating benefit beams -->
+        <div class="scene__beams" id="s10-beams" aria-hidden="true">
+          <div class="beam-item" id="s10-edu"    data-angle="-45">
+            <div class="beam-item__icon">📚</div>
+            <span class="beam-item__label">Education</span>
+          </div>
+          <div class="beam-item" id="s10-comm"   data-angle="-15">
+            <div class="beam-item__icon">💬</div>
+            <span class="beam-item__label">Communication</span>
+          </div>
+          <div class="beam-item" id="s10-create" data-angle="15">
+            <div class="beam-item__icon">💡</div>
+            <span class="beam-item__label">Creativity</span>
+          </div>
+          <div class="beam-item" id="s10-innov"  data-angle="45">
+            <div class="beam-item__icon">🚀</div>
+            <span class="beam-item__label">Innovation</span>
+          </div>
+        </div>
+
+        <!-- "Used responsibly" overlay text -->
+        <div class="scene__resp-text" id="s10-resp">
+          used <strong>responsibly</strong>
+        </div>
+      </section>
+
+      <!-- ── SCENE 11 ── Every Click Leaves a Mark (6:05–6:30) -->
+      <section class="scene" id="scene-11" data-scene="11" aria-label="Every Click Leaves a Mark">
+
+        <!-- Cursor that triggers the shockwave -->
+        <div class="scene__cursor" id="s11-cursor" aria-hidden="true">
+          <!-- SVG cursor injected by scenes.js -->
+        </div>
+
+        <!-- Shockwave rings -->
+        <div class="scene__shockwave" id="s11-shock" aria-hidden="true">
+          <div class="shock-ring shock-ring--1"></div>
+          <div class="shock-ring shock-ring--2"></div>
+          <div class="shock-ring shock-ring--3"></div>
+        </div>
+
+        <!-- Network canvas — procedurally generated node graph -->
+        <canvas id="node-canvas" aria-hidden="true"></canvas>
+
+        <!-- Final statement -->
+        <div class="scene__statement" id="s11-statement">
+          The internet never truly forgets.
+        </div>
+      </section>
+
+      <!-- ── SCENE 12 ── Transition Into the Film (6:30–7:00) -->
+      <section class="scene" id="scene-12" data-scene="12" aria-label="Transition Into the Film">
+
+        <!-- TikTok-style phone UI -->
+        <div class="scene__tiktok-phone" id="s12-phone">
+          <div class="tiktok__screen">
+            <div class="tiktok__status">9:41 AM</div>
+            <div class="tiktok__video-area">
+              <!-- Simulated video thumbnail -->
+              <div class="tiktok__thumb"></div>
+            </div>
+            <!-- The post card content -->
+            <div class="tiktok__caption">
+              <span class="tiktok__user">@uni_student_2024</span>
+              <span class="tiktok__text">ChatGPT literally did my whole project lol 😭✅</span>
+            </div>
+            <!-- Like / comment bar -->
+            <div class="tiktok__actions">
+              <div class="tiktok__action">
+                <span>❤️</span>
+                <span class="tiktok__counter" id="s12-likes">0</span>
+              </div>
+              <div class="tiktok__action">
+                <span>💬</span>
+                <span>1.2k</span>
+              </div>
+              <div class="tiktok__action">
+                <span>↗️</span>
+                <span>Share</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Screen crack overlay — SVG paths drawn by GSAP -->
+          <svg class="tiktok__crack" id="s12-crack" viewBox="0 0 300 600"
+               fill="none" aria-hidden="true">
+            <path id="crack-1" d="M150 200 L120 280 L160 320 L100 400"
+                  stroke="white" stroke-width="2"
+                  stroke-dasharray="300" stroke-dashoffset="300"/>
+            <path id="crack-2" d="M150 200 L180 260 L140 310 L200 380"
+                  stroke="white" stroke-width="1.5"
+                  stroke-dasharray="250" stroke-dashoffset="250"/>
+            <path id="crack-3" d="M130 220 L100 250 L80 300"
+                  stroke="white" stroke-width="1"
+                  stroke-dasharray="150" stroke-dashoffset="150"/>
+          </svg>
+        </div>
+
+        <!-- Whiteout flash layer -->
+        <div class="scene__whiteout" id="s12-whiteout" aria-hidden="true"></div>
+
+        <!-- Final title card -->
+        <div class="scene__title-card" id="s12-title">
+          <p class="title-card__line title-card__line--small">The following story is based on</p>
+          <p class="title-card__line title-card__line--large">a real possibility.</p>
+        </div>
+      </section>
+
+    </main><!-- /.scene-container -->
+
+    <!--
+    ============================================================
+    PLAYBACK CONTROLS  (visible during development only)
+    Hidden in production by adding class="hidden" or removing.
+    These let you jump to any scene without waiting.
+    ============================================================
+    -->
+    <nav id="dev-controls" aria-label="Development scene controls">
+      <span class="dev-controls__label">Scene:</span>
+      <button class="dev-btn" onclick="jumpToScene(1)">1</button>
+      <button class="dev-btn" onclick="jumpToScene(2)">2</button>
+      <button class="dev-btn" onclick="jumpToScene(3)">3</button>
+      <button class="dev-btn" onclick="jumpToScene(4)">4</button>
+      <button class="dev-btn" onclick="jumpToScene(5)">5</button>
+      <button class="dev-btn" onclick="jumpToScene(6)">6</button>
+      <button class="dev-btn" onclick="jumpToScene(7)">7</button>
+      <button class="dev-btn" onclick="jumpToScene(8)">8</button>
+      <button class="dev-btn" onclick="jumpToScene(9)">9</button>
+      <button class="dev-btn" onclick="jumpToScene(10)">10</button>
+      <button class="dev-btn" onclick="jumpToScene(11)">11</button>
+      <button class="dev-btn" onclick="jumpToScene(12)">12</button>
+      <button class="dev-btn dev-btn--play" onclick="playAll()">▶ Play All</button>
+    </nav>
+
+  </div><!-- /#app -->
+
+  <!--
+  ============================================================
+  JAVASCRIPT — loaded in order:
+    1. animations.js  → reusable GSAP helper functions
+    2. scenes.js      → builds each scene's SVG + runs its timeline
+    3. main.js        → wires everything together, starts playback
+  ============================================================
+  -->
+  <script src="js/animations.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>

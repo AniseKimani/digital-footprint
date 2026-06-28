@@ -1,0 +1,1264 @@
+/*
+================================================================
+  THE POWER OF THE DIGITAL FOOTPRINT
+  style.css  —  Global styles, design tokens, scene layouts
+================================================================
+  Structure of this file:
+    1.  CSS Custom Properties (design tokens)
+    2.  Reset & base styles
+    3.  App wrapper + portrait canvas
+    4.  Persistent background layer (orbs, particles)
+    5.  Scene base styles (shared by all 12 scenes)
+    6.  Scene-specific layout styles (no animation here — GSAP
+        handles all animation; CSS only sets initial positions)
+    7.  UI components (post card, phone, search, etc.)
+    8.  Typography utilities
+    9.  Development controls
+   10.  Reduced motion override
+================================================================
+*/
+
+
+/* ============================================================
+   1. CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================================
+   All colors, spacing, and type decisions live here.
+   Change a value once → updates across the entire animation.
+   ============================================================ */
+
+:root {
+
+  /* --- Core palette --- */
+  --color-bg:          #080810;   /* Near-black canvas — every scene lives on this */
+  --color-bg-warm:     #080c10;   /* Slightly warmer bg used in Scenes 8–10        */
+  --color-blue:        #378ADD;   /* Primary accent — active footprints, links      */
+  --color-blue-dim:    #1a4a7a;   /* Dimmed blue — background glows, inactive nodes */
+  --color-purple:      #7F77DD;   /* Secondary accent — passive data, passive nodes */
+  --color-purple-deep: #26215C;   /* Deep purple — ink metaphor, permanence scenes  */
+  --color-teal:        #1D9E75;   /* Positive accent — Scene 8 bloom cards          */
+  --color-amber:       #EF9F27;   /* Warning/attention — Scene 6 flags, sparkles    */
+  --color-red:         #E24B4A;   /* Danger — delete actions, X marks               */
+  --color-white:       #FFFFFF;
+  --color-white-dim:   rgba(255,255,255,0.08);
+
+  /* --- Text --- */
+  --text-primary:   rgba(255,255,255,0.95);
+  --text-secondary: rgba(255,255,255,0.60);
+  --text-muted:     rgba(255,255,255,0.30);
+
+  /* --- Glow effects --- */
+  --glow-blue:    0 0 40px rgba(55,138,221,0.35), 0 0 80px rgba(55,138,221,0.15);
+  --glow-purple:  0 0 40px rgba(127,119,221,0.35), 0 0 80px rgba(127,119,221,0.15);
+  --glow-teal:    0 0 40px rgba(29,158,117,0.35),  0 0 80px rgba(29,158,117,0.15);
+  --glow-amber:   0 0 20px rgba(239,159,39,0.5);
+
+  /* --- Typography --- */
+  --font-display: 'Space Grotesk', sans-serif;  /* Scene titles, big statements */
+  --font-body:    'Inter', sans-serif;           /* Labels, UI text              */
+
+  /* --- Type scale (portrait video = large type needed) --- */
+  --text-xs:   clamp(12px, 1.5vw, 16px);
+  --text-sm:   clamp(14px, 2vw,   20px);
+  --text-base: clamp(16px, 2.5vw, 24px);
+  --text-lg:   clamp(20px, 3vw,   32px);
+  --text-xl:   clamp(28px, 4.5vw, 48px);
+  --text-2xl:  clamp(36px, 6vw,   64px);
+  --text-3xl:  clamp(48px, 8vw,   84px);
+
+  /* --- Spacing --- */
+  --space-xs:  8px;
+  --space-sm:  16px;
+  --space-md:  24px;
+  --space-lg:  40px;
+  --space-xl:  64px;
+
+  /* --- Borders / radius --- */
+  --radius-sm:  8px;
+  --radius-md:  16px;
+  --radius-lg:  24px;
+  --radius-pill: 999px;
+
+  /* --- Transitions (for CSS transitions only — GSAP handles animations) --- */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Portrait canvas dimensions --- */
+  /* 9:16 ratio = 1080×1920. We scale this down to fit the viewport. */
+  --canvas-w: 405px;   /* 1080 ÷ 2.666 — fits on most desktop screens */
+  --canvas-h: 720px;   /* 1920 ÷ 2.666 */
+}
+
+
+/* ============================================================
+   2. RESET & BASE STYLES
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  /* Dark background behind the canvas — shows on wide screens */
+  background-color: #030308;
+  overflow: hidden;  /* No scrollbars — this is a video, not a webpage */
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  /* Subtle grid pattern on body helps with recording alignment */
+  background-image: radial-gradient(circle, #0d0d1a 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+
+/* ============================================================
+   3. APP WRAPPER — Portrait Canvas (9:16)
+   ============================================================
+   #app is the visible "screen" — everything is positioned
+   inside it. On export, this is the frame that gets captured.
+   ============================================================ */
+
+#app {
+  position: relative;
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+
+  /* Hard clip — nothing bleeds outside the canvas */
+  overflow: hidden;
+  border-radius: 16px;
+
+  /* Subtle border so the canvas edge is clear when recording */
+  outline: 1px solid rgba(255,255,255,0.08);
+
+  /* The base background — deep near-black */
+  background-color: var(--color-bg);
+
+  /* GPU acceleration hint for smooth compositing */
+  will-change: transform;
+}
+
+
+/* ============================================================
+   4. PERSISTENT BACKGROUND LAYER
+   ============================================================
+   Always visible behind all scenes. The orbs drift slowly and
+   the particle canvas runs on requestAnimationFrame.
+   ============================================================ */
+
+#bg-layer {
+  position: absolute;
+  inset: 0;         /* Shorthand for top/right/bottom/left: 0 */
+  z-index: 0;       /* Behind all scene content (scenes are z-index 10+) */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Shared orb base styles */
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  /*
+  Each orb drifts on a slow CSS animation.
+  We use CSS animations (not GSAP) here because they run
+  independently and don't need to sync with the timeline.
+  */
+  animation: orbDrift 20s ease-in-out infinite alternate;
+}
+
+.bg-orb--blue {
+  width: 300px;
+  height: 300px;
+  background: var(--color-blue);
+  top: -80px;
+  left: -80px;
+  animation-duration: 22s;
+}
+
+.bg-orb--purple {
+  width: 250px;
+  height: 250px;
+  background: var(--color-purple);
+  bottom: 10%;
+  right: -60px;
+  animation-duration: 18s;
+  animation-delay: -6s;   /* Offset so orbs don't sync */
+}
+
+.bg-orb--teal {
+  width: 200px;
+  height: 200px;
+  background: var(--color-teal);
+  bottom: 30%;
+  left: 10%;
+  animation-duration: 25s;
+  animation-delay: -12s;
+  opacity: 0.08;
+}
+
+@keyframes orbDrift {
+  0%   { transform: translate(0, 0)    scale(1);    }
+  50%  { transform: translate(30px, 20px) scale(1.1); }
+  100% { transform: translate(-20px, 40px) scale(0.95); }
+}
+
+/* Particle canvas sits on top of orbs but below scene content */
+#particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+}
+
+
+/* ============================================================
+   5. SCENE BASE STYLES
+   ============================================================
+   All 12 scenes share these base styles. GSAP sets
+   opacity:0 / visibility:hidden to hide inactive scenes.
+   ============================================================ */
+
+#scene-container {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+.scene {
+  /*
+  Each scene is absolutely positioned to fill the canvas.
+  They all occupy the same space — GSAP shows only one at a time.
+  */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  /* Start invisible — main.js reveals each scene via GSAP */
+  opacity: 0;
+  visibility: hidden;
+
+  /* Flexbox makes centering children straightforward */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* Padding keeps content away from edges */
+  padding: var(--space-lg) var(--space-md);
+
+  /* Scenes stack on z-axis — GSAP raises the active one */
+  z-index: 10;
+}
+
+/*
+Scene connector — the blue horizontal line at the bottom of each
+scene that visually links to the next. Injected per-scene as needed.
+*/
+.scene__connector {
+  position: absolute;
+  bottom: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;            /* Starts at 0; GSAP animates width to 120px */
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-blue), transparent);
+  border-radius: 2px;
+  opacity: 0;
+}
+
+/* Scene label — the small eyebrow + term text used in Scenes 2, 5 */
+.scene__label {
+  position: absolute;
+  bottom: var(--space-xl);
+  text-align: center;
+  opacity: 0;
+}
+.scene__label--center {
+  bottom: auto;
+  top: var(--space-lg);
+}
+.label__eyebrow {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-blue);
+  margin-bottom: 6px;
+}
+.label__term {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.label__term--large {
+  font-size: var(--text-xl);
+}
+
+
+/* ============================================================
+   6. SCENE-SPECIFIC LAYOUT STYLES
+   ============================================================ */
+
+/* ── SCENE 1 ── */
+.scene__phone-wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.scene__notifs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Individual notification badge — created dynamically in scenes.js */
+.notif {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(55,138,221,0.15);
+  border: 1px solid rgba(55,138,221,0.4);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-blue);
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  opacity: 0;            /* GSAP animates these in */
+}
+.notif::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--color-blue);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Ripple rings */
+.scene__ripples {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-blue);
+  opacity: 0;
+  /* Staggered via GSAP — CSS animation as fallback loop */
+}
+.ripple--1 { width: 120px; height: 120px; }
+.ripple--2 { width: 200px; height: 200px; }
+.ripple--3 { width: 280px; height: 280px; }
+.ripple--4 { width: 360px; height: 360px; }
+
+/* ── SCENE 3 — Split Screen ── */
+.scene__half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg) var(--space-sm);
+}
+.scene__half--left  { left: 0;  background: rgba(55,138,221,0.04); }
+.scene__half--right { right: 0; background: rgba(127,119,221,0.04); }
+
+.half__badge {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-md);
+  opacity: 0;
+}
+.half__badge--active  { color: var(--color-blue); }
+.half__badge--passive { color: var(--color-purple); }
+
+.half__icons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* Icon pill — shared by Scenes 2, 3 */
+.icon-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  opacity: 0;          /* GSAP handles reveal */
+  transform: translateY(10px);
+  white-space: nowrap;
+}
+.icon-pill--blue {
+  background: rgba(55,138,221,0.15);
+  border: 1px solid rgba(55,138,221,0.4);
+  color: var(--color-blue);
+}
+.icon-pill--purple {
+  background: rgba(127,119,221,0.15);
+  border: 1px solid rgba(127,119,221,0.4);
+  color: var(--color-purple);
+}
+
+.scene__divider {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  width: 2px;
+  z-index: 2;
+}
+
+.scene__merge {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+/* ── SCENE 4 — Post Card ── */
+.scene__post-card {
+  position: relative;
+  width: 280px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  backdrop-filter: blur(12px);
+  z-index: 2;
+}
+.post-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.post-card__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-blue), var(--color-purple));
+}
+.post-card__meta {
+  display: flex;
+  flex-direction: column;
+}
+.post-card__name {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.post-card__time {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.post-card__body {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.post-card__delete-btn {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(226,75,74,0.15);
+  border: 1px solid rgba(226,75,74,0.4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Copy nodes arranged around the post card */
+.scene__copies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.copy-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+}
+/* Radial positions — centered in canvas, spread around post card */
+#s4-copy-download  { top: 15%; left: 50%; transform: translate(-50%, 0); }
+#s4-copy-clipboard { top: 30%; right: 8%;  }
+#s4-copy-archive   { bottom: 28%; right: 8%; }
+#s4-copy-screenshot { bottom: 15%; left: 50%; transform: translate(-50%, 0); }
+#s4-copy-cloud     { top: 30%; left: 8%;  }
+
+.copy-node__icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(55,138,221,0.15);
+  border: 1.5px solid var(--color-blue);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: var(--glow-blue);
+}
+.copy-node__label {
+  font-size: var(--text-xs);
+  color: var(--color-blue);
+  font-weight: 500;
+}
+
+/* DELETED stamp */
+.scene__stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(0);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 900;
+  color: var(--color-red);
+  border: 4px solid var(--color-red);
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.15em;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── SCENE 5 — Ink + Network ── */
+.scene__ink-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scene__network {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+#network-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── SCENE 6 — Profile + Search ── */
+.scene__profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  opacity: 0;
+  z-index: 2;
+}
+.profile__avatar-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--color-blue), var(--color-purple));
+}
+.profile__avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a2a3a, #2a1a3a);
+  border: 2px solid var(--color-bg);
+}
+.profile__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.profile__handle {
+  font-size: var(--text-xs);
+  color: var(--color-blue);
+}
+
+.scene__orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.orbit-icon {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  background: rgba(55,138,221,0.1);
+  border: 1px solid rgba(55,138,221,0.3);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  opacity: 0;
+  /* GSAP moves these into orbit positions */
+}
+
+.scene__search {
+  width: 280px;
+  opacity: 0;
+  z-index: 2;
+}
+.search__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: var(--space-sm);
+}
+.search__icon { font-size: 14px; }
+.search__text {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+.search__cursor {
+  color: var(--color-blue);
+  animation: blink 0.8s step-end infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+.search__results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+}
+.search-result {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.search-result--normal {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+}
+.search-result--warning {
+  background: rgba(239,159,39,0.12);
+  border: 1px solid rgba(239,159,39,0.3);
+  color: var(--color-amber);
+}
+.result__flag {
+  font-size: 14px;
+}
+
+/* ── SCENE 7 — Timeline ── */
+.scene__timeline {
+  width: 85%;
+  margin-bottom: var(--space-xl);
+  opacity: 0;
+}
+.timeline__track {
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--space-sm);
+}
+.timeline__fill {
+  height: 100%;
+  width: 0;              /* GSAP animates to 100% */
+  background: linear-gradient(90deg, var(--color-blue), var(--color-purple));
+  border-radius: 2px;
+}
+.timeline__dots {
+  display: flex;
+  justify-content: space-between;
+}
+.timeline__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.3s var(--ease-smooth);
+}
+.timeline__dot.active {
+  background: var(--color-blue);
+  box-shadow: 0 0 8px var(--color-blue);
+}
+
+.scene__figures {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 85%;
+  opacity: 0;
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.figure__icon { font-size: 40px; }
+.figure__label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.figure--past  { opacity: 0.35; filter: grayscale(1); }
+.figure--present { opacity: 1; }
+
+.scene__keyword {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--color-white);
+  letter-spacing: 0.04em;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.8);
+  text-shadow: var(--glow-blue);
+}
+
+/* ── SCENE 8 — Positive Bloom ── */
+.scene__center-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+.center-node__ring {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid var(--color-teal);
+  box-shadow: var(--glow-teal);
+}
+.center-node__icon {
+  font-size: var(--text-2xl);
+  font-weight: 300;
+  color: var(--color-teal);
+  z-index: 1;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene__bloom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.bloom-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(29,158,117,0.08);
+  border: 1px solid rgba(29,158,117,0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  opacity: 0;
+  transform: scale(0.5);
+  min-width: 90px;
+  text-align: center;
+}
+.bloom-card__icon { font-size: 24px; }
+.bloom-card__label {
+  font-size: var(--text-xs);
+  color: var(--color-teal);
+  font-weight: 500;
+}
+/* Bloom card positions — radial arrangement around center */
+/* GSAP also positions these dynamically, but CSS sets initial layout */
+#s8-achieve  { top: 10%;  left: 50%; transform: translateX(-50%) scale(0.5); }
+#s8-volunteer{ top: 22%;  right: 5%; }
+#s8-creative { bottom: 22%; right: 5%; }
+#s8-research { bottom: 10%; left: 50%; transform: translateX(-50%) scale(0.5); }
+#s8-career   { bottom: 22%; left: 5%; }
+#s8-discuss  { top: 22%;  left: 5%; }
+
+.scene__sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ── SCENE 9 — Think Before Posting ── */
+.scene__phone-ui {
+  width: 200px;
+  background: #111118;
+  border-radius: 28px;
+  border: 2px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--glow-blue);
+  z-index: 2;
+  opacity: 0;
+}
+.phone-ui__screen {
+  padding: 12px;
+}
+.phone-ui__status-bar {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-bottom: 12px;
+}
+.phone-ui__post-area {
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  min-height: 60px;
+  margin-bottom: 12px;
+}
+.phone-ui__draft {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.phone-ui__post-btn {
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue);
+  color: white;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.3s var(--ease-smooth),
+              box-shadow 0.3s var(--ease-smooth);
+}
+.phone-ui__post-btn.safe {
+  background: var(--color-teal);
+  box-shadow: var(--glow-teal);
+}
+.phone-ui__post-btn.danger {
+  background: rgba(55,138,221,0.3);
+  box-shadow: none;
+}
+
+.scene__questions {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.question-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  opacity: 0;
+  transform: translateX(-20px);
+}
+.question-row__check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.3s var(--ease-smooth);
+}
+.question-row__check.yes {
+  border-color: var(--color-teal);
+  background: rgba(29,158,117,0.15);
+  color: var(--color-teal);
+}
+.question-row__check.no {
+  border-color: var(--color-red);
+  background: rgba(226,75,74,0.15);
+  color: var(--color-red);
+}
+.question-row__text {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.scene__reconsider {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-amber);
+  text-align: center;
+  opacity: 0;
+  letter-spacing: 0.04em;
+  text-shadow: var(--glow-amber);
+}
+
+/* ── SCENE 10 — Technology ── */
+.scene__device-wrap {
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+}
+.scene__beams {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.beam-item {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+}
+.beam-item__icon { font-size: 28px; }
+.beam-item__label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+/* Beam positions */
+#s10-edu  { top: 15%;  left: 8%;  }
+#s10-comm { top: 15%;  right: 8%; }
+#s10-create { bottom: 22%; left: 8%;  }
+#s10-innov  { bottom: 22%; right: 8%; }
+
+.scene__resp-text {
+  position: absolute;
+  bottom: var(--space-xl);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--text-secondary);
+  opacity: 0;
+  letter-spacing: 0.02em;
+}
+.scene__resp-text strong {
+  color: var(--color-white);
+  font-weight: 700;
+}
+
+/* ── SCENE 11 — Network ── */
+.scene__cursor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  opacity: 0;
+}
+
+.scene__shockwave {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.shock-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--color-blue);
+  opacity: 0;
+}
+.shock-ring--1 { width: 60px;  height: 60px;  }
+.shock-ring--2 { width: 150px; height: 150px; }
+.shock-ring--3 { width: 300px; height: 300px; }
+
+#node-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.scene__statement {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: var(--space-md);
+  right: var(--space-md);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  opacity: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* ── SCENE 12 — TikTok Transition ── */
+.scene__tiktok-phone {
+  position: relative;
+  width: 220px;
+  background: #000000;
+  border-radius: 28px;
+  border: 2px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+  z-index: 2;
+  opacity: 0;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+}
+.tiktok__screen { position: relative; }
+.tiktok__status {
+  padding: 8px 16px 0;
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  text-align: right;
+}
+.tiktok__video-area {
+  height: 160px;
+  background: #0a0a0a;
+  position: relative;
+  overflow: hidden;
+}
+.tiktok__thumb {
+  width: 100%;
+  height: 100%;
+  /* A placeholder gradient simulating a video thumbnail */
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+.tiktok__caption {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tiktok__user {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+}
+.tiktok__text {
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.4;
+}
+.tiktok__actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.tiktok__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.6);
+}
+.tiktok__action span:first-child { font-size: 16px; }
+.tiktok__counter {
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+}
+
+/* Crack SVG overlay */
+.tiktok__crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Whiteout flash */
+.scene__whiteout {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* Final title card */
+.scene__title-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  opacity: 0;
+  background: #000000;
+  z-index: 20;
+}
+.title-card__line {
+  font-family: var(--font-display);
+  text-align: center;
+  color: var(--text-primary);
+}
+.title-card__line--small {
+  font-size: var(--text-base);
+  font-weight: 300;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+.title-card__line--large {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+
+/* ============================================================
+   7. PHONE SVG COMPONENT (Scenes 1, 9)
+   ============================================================ */
+
+.phone-svg {
+  width: 140px;
+  filter: drop-shadow(0 0 30px rgba(55,138,221,0.4));
+}
+
+
+/* ============================================================
+   8. TYPOGRAPHY UTILITIES
+   ============================================================ */
+
+.u-text-blue    { color: var(--color-blue);   }
+.u-text-purple  { color: var(--color-purple); }
+.u-text-teal    { color: var(--color-teal);   }
+.u-text-amber   { color: var(--color-amber);  }
+.u-text-red     { color: var(--color-red);    }
+.u-text-muted   { color: var(--text-muted);   }
+
+.u-font-display { font-family: var(--font-display); }
+.u-font-mono    { font-family: 'Courier New', monospace; }
+
+
+/* ============================================================
+   9. DEVELOPMENT CONTROLS
+   ============================================================
+   This bar sits at the bottom of the screen during development.
+   Remove or hide before recording/exporting.
+   ============================================================ */
+
+#dev-controls {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  background: rgba(8,8,16,0.92);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+
+  backdrop-filter: blur(20px);
+  z-index: 9999;
+
+  /* Hide on screens narrower than the canvas
+     (keeps it visible on desktop during dev) */
+}
+
+.dev-controls__label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+  font-family: var(--font-body);
+}
+
+.dev-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: var(--font-body);
+  padding: 4px 7px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-smooth);
+}
+.dev-btn:hover {
+  background: rgba(55,138,221,0.15);
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+.dev-btn.active {
+  background: rgba(55,138,221,0.2);
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+.dev-btn--play {
+  background: rgba(55,138,221,0.1);
+  border-color: rgba(55,138,221,0.5);
+  color: var(--color-blue);
+  margin-left: 6px;
+  padding: 4px 12px;
+}
+.dev-btn--play:hover {
+  background: var(--color-blue);
+  color: white;
+}
+
+
+/* ============================================================
+   10. REDUCED MOTION
+   ============================================================
+   For users who prefer less motion (e.g. epilepsy, vertigo).
+   GSAP also checks this — see animations.js.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb { animation: none !important; }
+  .search__cursor { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}
