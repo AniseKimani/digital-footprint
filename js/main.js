@@ -1,61 +1,97 @@
 /*
 ================================================================
-  main.js  —  Entry point
+  main.js  —  Entry point  (FIXED)
   Responsibilities:
     • Register GSAP plugins
     • Start the particle background
     • Expose jumpToScene() and playAll() for dev controls
     • Show Scene 1 on load so there's something to see
+
+  KEY FIX: showScene() now calls SceneControllers[n].play()
+  after revealing the scene. The DOMContentLoaded listener
+  is also the single source of truth — scenes.js init() calls
+  are driven from here, not from a separate listener in
+  scenes.js, eliminating the race condition.
 ================================================================
 */
 
 // ── Register GSAP plugins ──────────────────────────────────────
-// TextPlugin: enables gsap.to(el, { text: "..." }) typewriter effect
 gsap.registerPlugin(TextPlugin);
 
-// ── Global master timeline ─────────────────────────────────────
-// This will be built out as we add scenes in later steps.
-let masterTimeline = null;
-let currentScene   = 0;
+// ── Global state ───────────────────────────────────────────────
+let masterTimeline  = null;
+let currentScene    = 0;
+let activeSceneTl   = null;   // tracks the running scene timeline so we can kill it
 
 // ── On DOM ready ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Start the floating particle background
-  initParticles();
+  // 1. Start floating particle background (defined in animations.js)
+  if (typeof initParticles === 'function') initParticles();
 
-  // Show Scene 1 immediately so the page isn't blank
+  // 2. Run every scene's init() so SVGs are injected before we try
+  //    to show anything. We do this HERE, not inside scenes.js, so
+  //    the order is guaranteed: init → then showScene → then play.
+  for (let i = 1; i <= 12; i++) {
+    if (window.SceneControllers?.[i]?.init) {
+      try {
+        SceneControllers[i].init();
+      } catch (err) {
+        console.warn(`[main.js] Scene ${i} init() error:`, err);
+      }
+    }
+  }
+  console.log('[main.js] All scene inits complete ✓');
+
+  // 3. Show Scene 1 now that SVGs are in the DOM
   showScene(1);
 });
+
 
 /*
   showScene(n)
   ─────────────
-  Hides all scenes, then fades in scene N.
-  Used by jumpToScene() (dev controls) and will be called
-  by the master timeline as it progresses.
+  Hides all scenes, fades in scene N, then calls play().
+  Used by jumpToScene() and will be called by the master timeline.
 */
 function showScene(n) {
   const scenes = document.querySelectorAll('.scene');
 
-  // Hide all scenes instantly
+  // Kill any currently running scene timeline cleanly
+  if (activeSceneTl) {
+    activeSceneTl.kill();
+    activeSceneTl = null;
+  }
+
+  // Hide all scenes instantly (sets opacity:0, visibility:hidden)
   gsap.set(scenes, { opacity: 0, visibility: 'hidden' });
 
-  // Remove active class from all dev buttons
+  // Update dev button highlight
   document.querySelectorAll('.dev-btn').forEach(b => b.classList.remove('active'));
 
-  // Find and show the target scene
   const target = document.getElementById('scene-' + n);
   if (!target) {
-    console.warn('Scene ' + n + ' not found yet — build it in scenes.js');
+    console.warn('Scene ' + n + ' not found in DOM');
     return;
   }
 
+  // Reveal the scene, THEN fire play() in the onComplete so the
+  // fade-in doesn't fight the GSAP initial states inside play().
   gsap.to(target, {
     opacity: 1,
     visibility: 'visible',
-    duration: 0.6,
+    duration: 0.4,
     ease: 'power2.out',
+    onComplete() {
+      // Fire this scene's timeline
+      if (window.SceneControllers?.[n]?.play) {
+        try {
+          activeSceneTl = SceneControllers[n].play();
+        } catch (err) {
+          console.warn(`[main.js] Scene ${n} play() error:`, err);
+        }
+      }
+    }
   });
 
   // Highlight the active dev button
@@ -65,30 +101,104 @@ function showScene(n) {
   currentScene = n;
 }
 
+
 /*
   jumpToScene(n)
   ─────────────
-  Called by the dev control buttons.
-  Pauses any running timeline, shows the requested scene.
+  Called by the dev control buttons (number keys / on-screen).
+  Re-inits the scene so SVG state is reset, then plays it fresh.
 */
 function jumpToScene(n) {
   if (masterTimeline) masterTimeline.pause();
+
+  // Re-run init so elements return to their starting GSAP states
+  if (window.SceneControllers?.[n]?.init) {
+    try {
+      SceneControllers[n].init();
+    } catch (err) {
+      console.warn(`[main.js] Scene ${n} re-init error:`, err);
+    }
+  }
+
   showScene(n);
 }
+
 
 /*
   playAll()
   ─────────
-  Plays all scenes in order.
-  The master timeline is assembled here; individual scene
-  timelines are appended as we build them in scenes.js.
+  Assembles all 12 scene timelines onto a master timeline and runs them.
+  Scene durations are based on the VO timestamps in the brief.
 */
 function playAll() {
-  masterTimeline = gsap.timeline();
+  if (masterTimeline) {
+    masterTimeline.kill();
+    masterTimeline = null;
+  }
 
-  // As scenes are built, this function will grow.
-  // For now it just shows Scene 1.
-  showScene(1);
+  // Re-init all scenes so every element resets to its start state
+  for (let i = 1; i <= 12; i++) {
+    if (window.SceneControllers?.[i]?.init) {
+      try { SceneControllers[i].init(); } catch (e) { /* skip */ }
+    }
+  }
 
-  console.log('▶ Play All — full timeline assembled in Step 16.');
+  // Scene durations in seconds (derived from VO timestamps in the brief)
+  const sceneDurations = [
+    0,   // placeholder — scenes are 1-indexed
+    38,  // Scene 1:  0:00 – 0:38
+    42,  // Scene 2:  0:38 – 1:20
+    40,  // Scene 3:  1:20 – 2:00
+    40,  // Scene 4:  2:00 – 2:40
+    40,  // Scene 5:  2:40 – 3:20
+    40,  // Scene 6:  3:20 – 4:00
+    25,  // Scene 7:  4:00 – 4:25
+    35,  // Scene 8:  4:25 – 5:00
+    30,  // Scene 9:  5:00 – 5:30
+    35,  // Scene 10: 5:30 – 6:05
+    25,  // Scene 11: 6:05 – 6:30
+    30,  // Scene 12: 6:30 – 7:00
+  ];
+
+  masterTimeline = gsap.timeline({
+    onComplete() {
+      console.log('[main.js] ▶ Full animation complete ✓');
+    }
+  });
+
+  let cursor = 0; // running time offset in seconds
+
+  for (let i = 1; i <= 12; i++) {
+    const ctrl = window.SceneControllers?.[i];
+    if (!ctrl) continue;
+
+    const sceneIndex = i; // capture for closure
+    const offset     = cursor;
+    const dur        = sceneDurations[i];
+
+    // At this scene's start time: hide all, show this scene, play it
+    masterTimeline.call(() => {
+      const scenes = document.querySelectorAll('.scene');
+      gsap.set(scenes, { opacity: 0, visibility: 'hidden' });
+
+      const target = document.getElementById('scene-' + sceneIndex);
+      if (target) gsap.set(target, { opacity: 1, visibility: 'visible' });
+
+      // Highlight dev button
+      document.querySelectorAll('.dev-btn').forEach(b => b.classList.remove('active'));
+      const btn = document.querySelectorAll('.dev-btn')[sceneIndex - 1];
+      if (btn) btn.classList.add('active');
+
+      currentScene = sceneIndex;
+
+      // Play the scene timeline
+      if (ctrl.play) {
+        try { ctrl.play(); } catch (e) { console.warn(`Scene ${sceneIndex} play error`, e); }
+      }
+    }, null, offset);
+
+    cursor += dur;
+  }
+
+  console.log(`[main.js] ▶ Master timeline built — total duration ~${cursor}s`);
 }
