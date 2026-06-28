@@ -28,29 +28,35 @@
 
 :root {
 
-  /* --- Core palette --- */
-  --color-bg:          #080810;   /* Near-black canvas — every scene lives on this */
-  --color-bg-warm:     #080c10;   /* Slightly warmer bg used in Scenes 8–10        */
-  --color-blue:        #378ADD;   /* Primary accent — active footprints, links      */
-  --color-blue-dim:    #1a4a7a;   /* Dimmed blue — background glows, inactive nodes */
-  --color-purple:      #7F77DD;   /* Secondary accent — passive data, passive nodes */
-  --color-purple-deep: #26215C;   /* Deep purple — ink metaphor, permanence scenes  */
-  --color-teal:        #1D9E75;   /* Positive accent — Scene 8 bloom cards          */
-  --color-amber:       #EF9F27;   /* Warning/attention — Scene 6 flags, sparkles    */
-  --color-red:         #E24B4A;   /* Danger — delete actions, X marks               */
+  /* --- Core palette — Warm Cream theme ---
+     Background: soft off-white cream.
+     Accents: same hues as original, lightened + slightly desaturated
+     so they read clearly on a light canvas without being harsh.      */
+  --color-bg:          #F5F0E8;   /* Warm cream canvas                              */
+  --color-bg-warm:     #F0EAE0;   /* Slightly deeper cream — Scenes 8–10            */
+  --color-blue:        #1A6FD4;   /* Vivid royal blue — pops hard on cream          */
+  --color-blue-dim:    #90BFEE;   /* Dimmed blue — background glows, inactive nodes */
+  --color-purple:      #5B4FD9;   /* Rich violet — saturated, not muddy             */
+  --color-purple-deep: #B8B2F0;   /* Soft lavender — ink metaphor, permanence       */
+  --color-teal:        #0B8F63;   /* Deep vivid teal — strong on cream              */
+  --color-amber:       #D4720A;   /* Burnt orange-amber — warm and punchy           */
+  --color-red:         #D42B2A;   /* Strong crimson — danger reads clearly          */
   --color-white:       #FFFFFF;
-  --color-white-dim:   rgba(255,255,255,0.08);
+  --color-white-dim:   rgba(0,0,0,0.06);   /* Subtle dark instead of white-dim     */
 
-  /* --- Text --- */
-  --text-primary:   rgba(255,255,255,0.95);
-  --text-secondary: rgba(255,255,255,0.60);
-  --text-muted:     rgba(255,255,255,0.30);
+  /* --- Text — dark on light ---
+     Inverted from original: near-black primaries on cream bg.        */
+  --text-primary:   rgba(30, 24, 18, 0.92);   /* Warm near-black                   */
+  --text-secondary: rgba(30, 24, 18, 0.55);   /* Mid warm-brown                    */
+  --text-muted:     rgba(30, 24, 18, 0.32);   /* Soft warm-grey                    */
 
-  /* --- Glow effects --- */
-  --glow-blue:    0 0 40px rgba(55,138,221,0.35), 0 0 80px rgba(55,138,221,0.15);
-  --glow-purple:  0 0 40px rgba(127,119,221,0.35), 0 0 80px rgba(127,119,221,0.15);
-  --glow-teal:    0 0 40px rgba(29,158,117,0.35),  0 0 80px rgba(29,158,117,0.15);
-  --glow-amber:   0 0 20px rgba(239,159,39,0.5);
+  /* --- Glow effects — softened for light bg ---
+     On a cream canvas glows need to be subtler; use colour tints
+     rather than the strong spreads that work on dark backgrounds.    */
+  --glow-blue:    0 0 28px rgba(26,111,212,0.30), 0 0 56px rgba(26,111,212,0.14);
+  --glow-purple:  0 0 28px rgba(91,79,217,0.30),  0 0 56px rgba(91,79,217,0.14);
+  --glow-teal:    0 0 28px rgba(11,143,99,0.30),   0 0 56px rgba(11,143,99,0.14);
+  --glow-amber:   0 0 18px rgba(212,114,10,0.38);
 
   /* --- Typography --- */
   --font-display: 'Space Grotesk', sans-serif;  /* Scene titles, big statements */
@@ -101,8 +107,8 @@
 html, body {
   width: 100%;
   height: 100%;
-  /* Dark background behind the canvas — shows on wide screens */
-  background-color: #030308;
+  /* Warm cream background behind the canvas — shows on wide screens */
+  background-color: #EDE8DF;
   overflow: hidden;  /* No scrollbars — this is a video, not a webpage */
 }
 
@@ -112,8 +118,8 @@ body {
   justify-content: center;
   font-family: var(--font-body);
   color: var(--text-primary);
-  /* Subtle grid pattern on body helps with recording alignment */
-  background-image: radial-gradient(circle, #0d0d1a 1px, transparent 1px);
+  /* Subtle dot grid — warm tone on cream */
+  background-image: radial-gradient(circle, #D8D2C8 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -135,7 +141,7 @@ body {
   border-radius: 16px;
 
   /* Subtle border so the canvas edge is clear when recording */
-  outline: 1px solid rgba(255,255,255,0.08);
+  outline: 1px solid rgba(30,24,18,0.10);
 
   /* The base background — deep near-black */
   background-color: var(--color-bg);
@@ -165,43 +171,40 @@ body {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.12;
-  /*
-  Each orb drifts on a slow CSS animation.
-  We use CSS animations (not GSAP) here because they run
-  independently and don't need to sync with the timeline.
-  */
+  opacity: 0.18;   /* Slightly stronger than dark-mode so orbs stay visible on cream */
   animation: orbDrift 20s ease-in-out infinite alternate;
 }
 
 .bg-orb--blue {
   width: 300px;
   height: 300px;
-  background: var(--color-blue);
+  background: #E8A870;   /* Warm amber-peach — no blue tint */
   top: -80px;
   left: -80px;
   animation-duration: 22s;
+  opacity: 0.20;
 }
 
 .bg-orb--purple {
   width: 250px;
   height: 250px;
-  background: var(--color-purple);
+  background: #D4907A;   /* Terracotta rose */
   bottom: 10%;
   right: -60px;
   animation-duration: 18s;
-  animation-delay: -6s;   /* Offset so orbs don't sync */
+  animation-delay: -6s;
+  opacity: 0.16;
 }
 
 .bg-orb--teal {
   width: 200px;
   height: 200px;
-  background: var(--color-teal);
+  background: #C8B480;   /* Warm sand-gold */
   bottom: 30%;
   left: 10%;
   animation-duration: 25s;
   animation-delay: -12s;
-  opacity: 0.08;
+  opacity: 0.14;
 }
 
 @keyframes orbDrift {
@@ -216,7 +219,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.4;
+  opacity: 0.12;   /* Pulled way down — particles were casting a blue wash on cream */
 }
 
 
@@ -331,15 +334,15 @@ scene that visually links to the next. Injected per-scene as needed.
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(55,138,221,0.15);
-  border: 1px solid rgba(55,138,221,0.4);
+  background: rgba(47,120,197,0.10);
+  border: 1px solid rgba(47,120,197,0.35);
   border-radius: var(--radius-pill);
   padding: 6px 12px;
   font-size: var(--text-xs);
   color: var(--color-blue);
   white-space: nowrap;
   backdrop-filter: blur(8px);
-  opacity: 0;            /* GSAP animates these in */
+  opacity: 0;
 }
 .notif::before {
   content: '';
@@ -383,8 +386,8 @@ scene that visually links to the next. Injected per-scene as needed.
   justify-content: center;
   padding: var(--space-lg) var(--space-sm);
 }
-.scene__half--left  { left: 0;  background: rgba(55,138,221,0.04); }
-.scene__half--right { right: 0; background: rgba(127,119,221,0.04); }
+.scene__half--left  { left: 0;  background: rgba(26,111,212,0.06); }
+.scene__half--right { right: 0; background: rgba(91,79,217,0.06); }
 
 .half__badge {
   font-family: var(--font-display);
@@ -404,7 +407,65 @@ scene that visually links to the next. Injected per-scene as needed.
   align-items: center;
 }
 
-/* Icon pill — shared by Scenes 2, 3 */
+/* half-icon — created by scenes.js in Scene 3 */
+.half-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-primary);           /* Strong warm-black — readable on cream */
+  background: rgba(255,255,255,0.60);
+  border: 1.5px solid rgba(30,24,18,0.12);
+  box-shadow: 0 2px 8px rgba(30,24,18,0.07);
+}
+.half-icon span:first-child { font-size: 18px; }
+.half-icon__label { color: var(--text-primary); font-weight: 600; }
+
+/* Left-half icons get a blue left border accent */
+#s3-active .half-icon  { border-left: 3px solid var(--color-blue); }
+/* Right-half icons get a purple left border accent */
+#s3-passive .half-icon { border-left: 3px solid var(--color-purple); }
+
+/* data-tag — created by scenes.js in Scene 2 */
+.data-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.65);
+  border: 1.5px solid rgba(30,24,18,0.12);
+  box-shadow: 0 2px 8px rgba(30,24,18,0.07);
+}
+.data-tag__icon { font-size: 16px; }
+.data-tag__label { color: var(--text-primary); font-weight: 600; }
+
+/* notif-badge — created by scenes.js in Scene 1 */
+.notif-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-red);
+  background: rgba(212,43,42,0.08);
+  border: 1.5px solid rgba(212,43,42,0.30);
+  box-shadow: 0 2px 8px rgba(212,43,42,0.10);
+  white-space: nowrap;
+  margin: 4px;
+}
+
+/* Icon pill — shared by Scenes 2, 3 (legacy — prefer .half-icon / .data-tag) */
 .icon-pill {
   display: flex;
   align-items: center;
@@ -412,21 +473,16 @@ scene that visually links to the next. Injected per-scene as needed.
   padding: 8px 14px;
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
-  font-weight: 500;
-  opacity: 0;          /* GSAP handles reveal */
+  font-weight: 600;
+  opacity: 0;
   transform: translateY(10px);
   white-space: nowrap;
+  background: rgba(255,255,255,0.65);
+  border: 1.5px solid rgba(30,24,18,0.12);
+  color: var(--text-primary);
 }
-.icon-pill--blue {
-  background: rgba(55,138,221,0.15);
-  border: 1px solid rgba(55,138,221,0.4);
-  color: var(--color-blue);
-}
-.icon-pill--purple {
-  background: rgba(127,119,221,0.15);
-  border: 1px solid rgba(127,119,221,0.4);
-  color: var(--color-purple);
-}
+.icon-pill--blue   { border-left: 3px solid var(--color-blue);   }
+.icon-pill--purple { border-left: 3px solid var(--color-purple); }
 
 .scene__divider {
   position: absolute;
@@ -450,11 +506,12 @@ scene that visually links to the next. Injected per-scene as needed.
 .scene__post-card {
   position: relative;
   width: 280px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.70);
+  border: 1px solid rgba(30,24,18,0.10);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(30,24,18,0.08);
   z-index: 2;
 }
 .post-card__header {
@@ -496,8 +553,8 @@ scene that visually links to the next. Injected per-scene as needed.
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(226,75,74,0.15);
-  border: 1px solid rgba(226,75,74,0.4);
+  background: rgba(201,65,64,0.10);
+  border: 1px solid rgba(201,65,64,0.35);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
@@ -527,7 +584,7 @@ scene that visually links to the next. Injected per-scene as needed.
 .copy-node__icon {
   width: 44px;
   height: 44px;
-  background: rgba(55,138,221,0.15);
+  background: rgba(47,120,197,0.10);
   border: 1.5px solid var(--color-blue);
   border-radius: var(--radius-md);
   display: flex;
@@ -600,7 +657,7 @@ scene that visually links to the next. Injected per-scene as needed.
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1a2a3a, #2a1a3a);
+  background: linear-gradient(135deg, #C8D8EE, #D0C8EE);
   border: 2px solid var(--color-bg);
 }
 .profile__name {
@@ -622,15 +679,14 @@ scene that visually links to the next. Injected per-scene as needed.
   position: absolute;
   width: 48px;
   height: 48px;
-  background: rgba(55,138,221,0.1);
-  border: 1px solid rgba(55,138,221,0.3);
+  background: rgba(47,120,197,0.08);
+  border: 1px solid rgba(47,120,197,0.28);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   opacity: 0;
-  /* GSAP moves these into orbit positions */
 }
 
 .scene__search {
@@ -642,11 +698,12 @@ scene that visually links to the next. Injected per-scene as needed.
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(30,24,18,0.12);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   margin-bottom: var(--space-sm);
+  box-shadow: 0 2px 8px rgba(30,24,18,0.06);
 }
 .search__icon { font-size: 14px; }
 .search__text {
@@ -676,12 +733,12 @@ scene that visually links to the next. Injected per-scene as needed.
   justify-content: space-between;
 }
 .search-result--normal {
-  background: rgba(255,255,255,0.04);
+  background: rgba(30,24,18,0.05);
   color: var(--text-secondary);
 }
 .search-result--warning {
-  background: rgba(239,159,39,0.12);
-  border: 1px solid rgba(239,159,39,0.3);
+  background: rgba(201,127,10,0.10);
+  border: 1px solid rgba(201,127,10,0.30);
   color: var(--color-amber);
 }
 .result__flag {
@@ -696,7 +753,7 @@ scene that visually links to the next. Injected per-scene as needed.
 }
 .timeline__track {
   height: 3px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(30,24,18,0.12);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: var(--space-sm);
@@ -715,7 +772,7 @@ scene that visually links to the next. Injected per-scene as needed.
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.15);
+  background: rgba(30,24,18,0.15);
   transition: background 0.3s var(--ease-smooth);
 }
 .timeline__dot.active {
@@ -796,14 +853,15 @@ scene that visually links to the next. Injected per-scene as needed.
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: rgba(29,158,117,0.08);
-  border: 1px solid rgba(29,158,117,0.3);
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(26,143,104,0.25);
   border-radius: var(--radius-md);
   padding: 12px 16px;
   opacity: 0;
   transform: scale(0.5);
   min-width: 90px;
   text-align: center;
+  box-shadow: 0 2px 12px rgba(26,143,104,0.10);
 }
 .bloom-card__icon { font-size: 24px; }
 .bloom-card__label {
@@ -829,11 +887,11 @@ scene that visually links to the next. Injected per-scene as needed.
 /* ── SCENE 9 — Think Before Posting ── */
 .scene__phone-ui {
   width: 200px;
-  background: #111118;
+  background: #FFFFFF;
   border-radius: 28px;
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid rgba(30,24,18,0.10);
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--glow-blue);
+  box-shadow: 0 20px 60px rgba(30,24,18,0.14), var(--glow-blue);
   z-index: 2;
   opacity: 0;
 }
@@ -847,11 +905,12 @@ scene that visually links to the next. Injected per-scene as needed.
   margin-bottom: 12px;
 }
 .phone-ui__post-area {
-  background: rgba(255,255,255,0.04);
+  background: rgba(30,24,18,0.04);
   border-radius: var(--radius-sm);
   padding: 12px;
   min-height: 60px;
   margin-bottom: 12px;
+  border: 1px solid rgba(30,24,18,0.07);
 }
 .phone-ui__draft {
   font-size: var(--text-xs);
@@ -901,7 +960,7 @@ scene that visually links to the next. Injected per-scene as needed.
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(30,24,18,0.22);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1009,6 +1068,7 @@ scene that visually links to the next. Injected per-scene as needed.
   border-radius: 50%;
   border: 2px solid var(--color-blue);
   opacity: 0;
+  box-shadow: 0 0 8px rgba(47,120,197,0.20);
 }
 .shock-ring--1 { width: 60px;  height: 60px;  }
 .shock-ring--2 { width: 150px; height: 150px; }
@@ -1041,13 +1101,13 @@ scene that visually links to the next. Injected per-scene as needed.
 .scene__tiktok-phone {
   position: relative;
   width: 220px;
-  background: #000000;
+  background: #0A0A0A;
   border-radius: 28px;
-  border: 2px solid rgba(255,255,255,0.08);
+  border: 2px solid rgba(30,24,18,0.15);
   overflow: hidden;
   z-index: 2;
   opacity: 0;
-  box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+  box-shadow: 0 20px 80px rgba(30,24,18,0.25);
 }
 .tiktok__screen { position: relative; }
 .tiktok__status {
@@ -1134,7 +1194,7 @@ scene that visually links to the next. Injected per-scene as needed.
   justify-content: center;
   gap: var(--space-sm);
   opacity: 0;
-  background: #000000;
+  background: #F5F0E8;   /* Matches canvas — title card lives on cream */
   z-index: 20;
 }
 .title-card__line {
@@ -1197,16 +1257,13 @@ scene that visually links to the next. Injected per-scene as needed.
   align-items: center;
   gap: 4px;
 
-  background: rgba(8,8,16,0.92);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(245,240,232,0.92);
+  border: 1px solid rgba(30,24,18,0.14);
   border-radius: var(--radius-pill);
   padding: 6px 12px;
 
   backdrop-filter: blur(20px);
   z-index: 9999;
-
-  /* Hide on screens narrower than the canvas
-     (keeps it visible on desktop during dev) */
 }
 
 .dev-controls__label {
@@ -1218,7 +1275,7 @@ scene that visually links to the next. Injected per-scene as needed.
 
 .dev-btn {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(30,24,18,0.18);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 11px;
@@ -1228,18 +1285,18 @@ scene that visually links to the next. Injected per-scene as needed.
   transition: all 0.15s var(--ease-smooth);
 }
 .dev-btn:hover {
-  background: rgba(55,138,221,0.15);
+  background: rgba(47,120,197,0.10);
   border-color: var(--color-blue);
   color: var(--color-blue);
 }
 .dev-btn.active {
-  background: rgba(55,138,221,0.2);
+  background: rgba(47,120,197,0.14);
   border-color: var(--color-blue);
   color: var(--color-blue);
 }
 .dev-btn--play {
-  background: rgba(55,138,221,0.1);
-  border-color: rgba(55,138,221,0.5);
+  background: rgba(47,120,197,0.08);
+  border-color: rgba(47,120,197,0.45);
   color: var(--color-blue);
   margin-left: 6px;
   padding: 4px 12px;
