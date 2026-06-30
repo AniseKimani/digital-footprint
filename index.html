@@ -185,32 +185,43 @@
             </div>
           </div>
           <div class="post-card__body">Just posted something online… 📱</div>
-          <div class="post-card__delete-btn" id="s4-delete-btn">
-            <!-- Trash icon injected by scenes.js -->
-          </div>
+          <div class="post-card__delete-btn" id="s4-delete-btn">🗑️</div>
         </div>
+
+        <!-- Connector lines from post card to each copy destination —
+             drawn with SVG so they can stroke-dashoffset animate in,
+             reinforcing that the data has already spread outward -->
+        <svg class="scene__copy-lines" id="s4-copy-lines"
+             viewBox="0 0 405 720" preserveAspectRatio="none"
+             aria-hidden="true">
+          <line id="s4-line-download"   x1="202" y1="280" x2="202" y2="108" />
+          <line id="s4-line-clipboard"  x1="202" y1="280" x2="345" y2="216" />
+          <line id="s4-line-archive"    x1="202" y1="280" x2="345" y2="504" />
+          <line id="s4-line-screenshot" x1="202" y1="280" x2="202" y2="612" />
+          <line id="s4-line-cloud"      x1="202" y1="280" x2="60"  y2="216" />
+        </svg>
 
         <!-- The five "copy" destination icons, arranged radially -->
         <div class="scene__copies" id="s4-copies" aria-hidden="true">
           <!-- Each .copy-node is positioned absolutely by CSS and animated by GSAP -->
           <div class="copy-node" id="s4-copy-download" data-label="Downloaded">
-            <div class="copy-node__icon"></div>
+            <div class="copy-node__icon">⬇️</div>
             <span class="copy-node__label">Downloaded</span>
           </div>
           <div class="copy-node" id="s4-copy-clipboard" data-label="Copied">
-            <div class="copy-node__icon"></div>
+            <div class="copy-node__icon">📋</div>
             <span class="copy-node__label">Copied</span>
           </div>
           <div class="copy-node" id="s4-copy-archive" data-label="Archived">
-            <div class="copy-node__icon"></div>
+            <div class="copy-node__icon">🗄️</div>
             <span class="copy-node__label">Archived</span>
           </div>
           <div class="copy-node" id="s4-copy-screenshot" data-label="Screenshot">
-            <div class="copy-node__icon"></div>
+            <div class="copy-node__icon">📱</div>
             <span class="copy-node__label">Screenshot</span>
           </div>
           <div class="copy-node" id="s4-copy-cloud" data-label="Cloud backup">
-            <div class="copy-node__icon"></div>
+            <div class="copy-node__icon">☁️</div>
             <span class="copy-node__label">Cloud backup</span>
           </div>
         </div>

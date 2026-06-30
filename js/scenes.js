@@ -761,6 +761,24 @@ SceneControllers[2] = {
    VO: "Some parts of our digital footprint are active, meaning we intentionally
         share them... Other parts are passive. These are collected without us
         actively thinking about them..."
+
+   UPGRADE NOTES (cream-theme pass):
+   - Retheme from dark-mode glow palette → warm cream: card backgrounds are now
+     translucent white instead of translucent colour-on-black, text uses
+     --text-primary (warm near-black) instead of pure white, panel washes
+     are much lighter so they read as a tint rather than a colour flood.
+   - Eye-blink now scales around its own local origin (was previously anchored
+     to a page-pixel coordinate that drifted under transform — fixed to use
+     "center center" so the blink stays centred on the eye regardless of
+     where the <g> sits).
+   - Divider glow gradient softened — full-white-hot core looked harsh on
+     cream; toned down to a warm gold-white core instead.
+   - Big eye iris/pupil recoloured — was near-black eyelid with white pupil
+     shine (high-contrast dark-mode trick); now uses a warm plum eyelid that
+     sits comfortably on cream without becoming a black hole on the canvas.
+   - Bottom statement card swapped from white-on-white-glass to a proper
+     warm card with visible border, since "rgba(255,255,255,0.04)" was
+     basically invisible on a cream bg.
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[3] = {
 
@@ -771,14 +789,29 @@ SceneControllers[3] = {
     const prev = el.querySelector("#s3-svg");
     if (prev) prev.remove();
 
+    // ── FIX: hide legacy static HTML left over from the original index.html ──
+    // Before scenes.js injected a full custom SVG, Scene 3 was built from
+    // static divs: #s3-active / #s3-passive (.scene__half), #s3-divider,
+    // and #s3-merge. Those elements are STILL in the DOM and were painting
+    // on top of (or alongside) our injected SVG — which is exactly why the
+    // "ACTIVE" title looked duplicated/obstructed (two overlapping labels)
+    // and the passive side looked "empty" (the old empty .half__icons
+    // container was sitting on top of our illustrated SVG, blank).
+    // We hide them defensively every time init() runs, so the scene is
+    // safe to re-enter via jumpToScene() without the legacy markup
+    // reappearing.
+    ["#s3-active", "#s3-passive", "#s3-divider", "#s3-merge"].forEach(sel => {
+      const legacy = el.querySelector(sel);
+      if (legacy) legacy.style.display = "none";
+    });
+
     // ── Story of this scene ──
-    // Screen tears/splits from centre — LEFT = bright blue (Active, intentional),
-    // RIGHT = deep purple (Passive, silent, watching).
+    // Screen tears/splits from centre — LEFT = blue (Active, intentional),
+    // RIGHT = purple (Passive, silent, watching).
     // Active side: each item appears with a confident "click" animation — the
     //   user is choosing to share.
     // Passive side: items materialise silently, with an eerie watching-eye motif —
     //   data being collected without the user knowing.
-    // A person silhouette in each half reinforces who is in control.
     // Bottom: the two halves merge into a unified "Digital Record" statement.
 
     const activeItems = [
@@ -802,86 +835,82 @@ SceneControllers[3] = {
            width="405" height="720"
            style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible">
         <defs>
-          <!-- Active (left) panel gradient — vivid blue wash -->
+          <!-- Panel gradients -->
           <linearGradient id="s3-left-bg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stop-color="${C.blue}"  stop-opacity="0.18"/>
-            <stop offset="100%" stop-color="${C.blue}"  stop-opacity="0.04"/>
+            <stop offset="0%"   stop-color="${C.blue}"   stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="${C.blue}"   stop-opacity="0.04"/>
           </linearGradient>
-          <!-- Passive (right) panel gradient — eerie purple wash -->
           <linearGradient id="s3-right-bg" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%"   stop-color="${C.purple}" stop-opacity="0.04"/>
             <stop offset="100%" stop-color="${C.purple}" stop-opacity="0.22"/>
           </linearGradient>
           <!-- Divider glow -->
           <linearGradient id="s3-div-glow" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%"   stop-color="transparent"   stop-opacity="0"/>
-            <stop offset="20%"  stop-color="${C.white}"    stop-opacity="0.6"/>
-            <stop offset="50%"  stop-color="${C.blue}"     stop-opacity="1.0"/>
-            <stop offset="80%"  stop-color="${C.purple}"   stop-opacity="0.6"/>
-            <stop offset="100%" stop-color="transparent"   stop-opacity="0"/>
+            <stop offset="0%"   stop-color="transparent" stop-opacity="0"/>
+            <stop offset="20%"  stop-color="white"       stop-opacity="0.5"/>
+            <stop offset="50%"  stop-color="${C.blue}"   stop-opacity="1.0"/>
+            <stop offset="80%"  stop-color="${C.purple}" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
           </linearGradient>
-          <!-- Eye iris gradient -->
+          <!-- Eye iris -->
           <radialGradient id="s3-iris-grad" cx="40%" cy="35%" r="60%">
-            <stop offset="0%"   stop-color="${C.white}"   stop-opacity="0.9"/>
-            <stop offset="40%"  stop-color="${C.purple}"  stop-opacity="1"/>
-            <stop offset="100%" stop-color="#26215C"      stop-opacity="1"/>
+            <stop offset="0%"   stop-color="#B8A8E8"     stop-opacity="0.95"/>
+            <stop offset="40%"  stop-color="${C.purple}" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#26215C"     stop-opacity="1"/>
           </radialGradient>
-          <!-- Click cursor flash -->
-          <filter id="s3-click-glow">
+          <!-- Glow filter -->
+          <filter id="s3-click-glow" x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
+          <!-- clipPaths MUST live inside defs or browsers silently discard them -->
+          <clipPath id="s3-left-clip">
+            <rect x="0" y="0" width="202" height="720"/>
+          </clipPath>
+          <clipPath id="s3-right-clip">
+            <rect x="203" y="0" width="202" height="720"/>
+          </clipPath>
         </defs>
 
         <!-- ══════════ LEFT PANEL: ACTIVE ══════════ -->
-        <clipPath id="s3-left-clip">
-          <rect x="0" y="0" width="201" height="720"/>
-        </clipPath>
         <g id="s3-left-panel" clip-path="url(#s3-left-clip)">
-          <!-- Panel background wash -->
           <rect x="0" y="0" width="202" height="720" fill="url(#s3-left-bg)"/>
 
-          <!-- Bold ACTIVE header -->
-          <g id="s3-active-header" opacity="0" transform="translate(101,75)">
-            <!-- Large background box -->
-            <rect x="-75" y="-28" width="150" height="56" rx="14"
-                  fill="${C.blue}" opacity="0.2" stroke="${C.blue}" stroke-width="1.5"/>
-            <!-- Icon -->
-            <text x="-52" y="8" font-size="20">✋</text>
-            <text x="-22" y="-6" font-family="'Space Grotesk',sans-serif" font-size="15"
-                  fill="${C.blue}" font-weight="900" letter-spacing="1">ACTIVE</text>
-            <text x="-22" y="14" font-family="Inter,sans-serif" font-size="8"
-                  fill="rgba(55,138,221,0.7)" letter-spacing="0.5">YOU CHOOSE THIS</text>
+          <!-- ACTIVE header — wrapper pattern: outer <g> holds authored position,
+               inner <g id> starts at (0,0) so GSAP y offsets work correctly -->
+          <g transform="translate(101,75)">
+            <g id="s3-active-header" opacity="0">
+              <rect x="-75" y="-28" width="150" height="56" rx="14"
+                    fill="${C.blue}" opacity="0.2" stroke="${C.blue}" stroke-width="1.5"/>
+              <text x="-52" y="8" font-size="20">✋</text>
+              <text x="-22" y="-6" font-family="'Space Grotesk',sans-serif" font-size="15"
+                    fill="${C.blue}" font-weight="900" letter-spacing="1">ACTIVE</text>
+              <text x="-22" y="14" font-family="Inter,sans-serif" font-size="8"
+                    fill="${C.blue}" opacity="0.7" letter-spacing="0.5">YOU CHOOSE THIS</text>
+            </g>
           </g>
 
-          <!-- Active items — each has an icon, label, and sub-caption -->
           ${activeItems.map((item, i) => `
-            <g class="s3-active-item" id="s3-a${i}"
-               opacity="0" transform="translate(12,${item.y})">
-              <!-- Card background -->
-              <rect x="0" y="-18" width="182" height="48" rx="10"
-                    fill="${C.blue}" opacity="0.08" stroke="${C.blue}" stroke-width="0.8"
-                    stroke-opacity="0.3"/>
-              <!-- Colored left border -->
-              <rect x="0" y="-18" width="3" height="48" rx="1.5"
-                    fill="${C.blue}" opacity="0.8"/>
-              <!-- Icon circle -->
-              <circle cx="26" cy="6" r="18" fill="${C.blue}" opacity="0.15"/>
-              <text x="26" y="12" font-size="16" text-anchor="middle">${item.icon}</text>
-              <!-- Label -->
-              <text x="52" y="-2" font-family="Inter,sans-serif" font-size="10"
-                    fill="${C.white}" font-weight="700">${item.label}</text>
-              <!-- Sub-caption -->
-              <text x="52" y="16" font-family="Inter,sans-serif" font-size="7.5"
-                    fill="${C.blue}" opacity="0.7">${item.sub}</text>
-              <!-- Checkmark — "you did this" -->
-              <circle cx="168" cy="6" r="8" fill="${C.blue}" opacity="0.2"/>
-              <text x="168" y="10" font-size="9" text-anchor="middle"
-                    fill="${C.blue}" font-weight="700">✓</text>
+            <g transform="translate(12,${item.y})">
+              <g class="s3-active-item" id="s3-a${i}" opacity="0">
+                <rect x="0" y="-18" width="182" height="48" rx="10"
+                      fill="${C.blue}" fill-opacity="0.08"
+                      stroke="${C.blue}" stroke-width="0.8" stroke-opacity="0.4"/>
+                <rect x="0" y="-18" width="3" height="48" rx="1.5"
+                      fill="${C.blue}" opacity="0.9"/>
+                <circle cx="26" cy="6" r="18" fill="${C.blue}" opacity="0.15"/>
+                <text x="26" y="12" font-size="16" text-anchor="middle">${item.icon}</text>
+                <text x="52" y="-2" font-family="Inter,sans-serif" font-size="10"
+                      fill="white" font-weight="700">${item.label}</text>
+                <text x="52" y="16" font-family="Inter,sans-serif" font-size="7.5"
+                      fill="${C.blue}" opacity="0.8">${item.sub}</text>
+                <circle cx="168" cy="6" r="8" fill="${C.blue}" opacity="0.2"/>
+                <text x="168" y="10" font-size="9" text-anchor="middle"
+                      fill="${C.blue}" font-weight="700">✓</text>
+              </g>
             </g>`).join("")}
 
-          <!-- "You're in control" footer on active side -->
-          <g id="s3-active-footer" opacity="0" transform="translate(101,530)">
+          <g id="s3-active-footer" opacity="0" transform="translate(101,540)">
             <text font-family="Inter,sans-serif" font-size="8.5"
                   fill="${C.blue}" text-anchor="middle" font-weight="600">
               You decide what the world sees.
@@ -890,46 +919,45 @@ SceneControllers[3] = {
         </g>
 
         <!-- ══════════ RIGHT PANEL: PASSIVE ══════════ -->
-        <clipPath id="s3-right-clip">
-          <rect x="204" y="0" width="201" height="720"/>
-        </clipPath>
         <g id="s3-right-panel" clip-path="url(#s3-right-clip)">
-          <!-- Panel background wash -->
           <rect x="203" y="0" width="202" height="720" fill="url(#s3-right-bg)"/>
 
-          <!-- Bold PASSIVE header -->
-          <g id="s3-passive-header" opacity="0" transform="translate(304,75)">
-            <rect x="-75" y="-28" width="150" height="56" rx="14"
-                  fill="${C.purple}" opacity="0.2" stroke="${C.purple}" stroke-width="1.5"/>
-            <text x="-52" y="8" font-size="20">👁</text>
-            <text x="-22" y="-6" font-family="'Space Grotesk',sans-serif" font-size="14"
-                  fill="${C.purple}" font-weight="900" letter-spacing="1">PASSIVE</text>
-            <text x="-22" y="14" font-family="Inter,sans-serif" font-size="8"
-                  fill="rgba(127,119,221,0.7)" letter-spacing="0.5">HAPPENS TO YOU</text>
+          <!-- PASSIVE header -->
+          <!-- PASSIVE header — same wrapper pattern as active side -->
+          <g transform="translate(304,75)">
+            <g id="s3-passive-header" opacity="0">
+              <rect x="-75" y="-28" width="150" height="56" rx="14"
+                    fill="${C.purple}" opacity="0.2" stroke="${C.purple}" stroke-width="1.5"/>
+              <text x="-52" y="8" font-size="20">👁</text>
+              <text x="-22" y="-6" font-family="'Space Grotesk',sans-serif" font-size="14"
+                    fill="${C.purple}" font-weight="900" letter-spacing="1">PASSIVE</text>
+              <text x="-22" y="14" font-family="Inter,sans-serif" font-size="8"
+                    fill="${C.purple}" opacity="0.7" letter-spacing="0.5">HAPPENS TO YOU</text>
+            </g>
           </g>
 
-          <!-- Passive items — eerier styling, darker -->
           ${passiveItems.map((item, i) => `
-            <g class="s3-passive-item" id="s3-p${i}"
-               opacity="0" transform="translate(211,${item.y})">
-              <rect x="0" y="-18" width="182" height="48" rx="10"
-                    fill="${C.purple}" opacity="0.08" stroke="${C.purple}" stroke-width="0.8"
-                    stroke-opacity="0.3"/>
-              <rect x="179" y="-18" width="3" height="48" rx="1.5"
-                    fill="${C.purple}" opacity="0.8"/>
-              <circle cx="26" cy="6" r="18" fill="${C.purple}" opacity="0.12"/>
-              <text x="26" y="12" font-size="16" text-anchor="middle">${item.icon}</text>
-              <text x="52" y="-2" font-family="Inter,sans-serif" font-size="10"
-                    fill="${C.white}" font-weight="700">${item.label}</text>
-              <text x="52" y="16" font-family="Inter,sans-serif" font-size="7.5"
-                    fill="${C.purple}" opacity="0.7">${item.sub}</text>
-              <!-- Eye icon instead of checkmark — watching, not choosing -->
-              <circle cx="168" cy="6" r="8" fill="${C.purple}" opacity="0.2"/>
-              <text x="168" y="10" font-size="9" text-anchor="middle">👁</text>
+            <g transform="translate(211,${item.y})">
+              <g class="s3-passive-item" id="s3-p${i}" opacity="0">
+                <rect x="0" y="-18" width="182" height="48" rx="10"
+                      fill="${C.purple}" fill-opacity="0.08"
+                      stroke="${C.purple}" stroke-width="0.8" stroke-opacity="0.4"/>
+                <rect x="179" y="-18" width="3" height="48" rx="1.5"
+                      fill="${C.purple}" opacity="0.9"/>
+                <circle cx="26" cy="6" r="18" fill="${C.purple}" opacity="0.12"/>
+                <circle cx="26" cy="6" r="18" fill="none" stroke="${C.purple}"
+                        stroke-width="1" stroke-dasharray="2.5 2.5" opacity="0.5"/>
+                <text x="26" y="12" font-size="16" text-anchor="middle">${item.icon}</text>
+                <text x="52" y="-2" font-family="Inter,sans-serif" font-size="10"
+                      fill="white" font-weight="700">${item.label}</text>
+                <text x="52" y="16" font-family="Inter,sans-serif" font-size="7.5"
+                      fill="${C.purple}" opacity="0.8">${item.sub}</text>
+                <circle cx="168" cy="6" r="8" fill="${C.purple}" opacity="0.2"/>
+                <text x="168" y="10" font-size="9" text-anchor="middle">👁</text>
+              </g>
             </g>`).join("")}
 
-          <!-- "You don't know" footer -->
-          <g id="s3-passive-footer" opacity="0" transform="translate(304,530)">
+          <g id="s3-passive-footer" opacity="0" transform="translate(304,540)">
             <text font-family="Inter,sans-serif" font-size="8.5"
                   fill="${C.purple}" text-anchor="middle" font-weight="600">
               This happens whether you know or not.
@@ -937,58 +965,52 @@ SceneControllers[3] = {
           </g>
         </g>
 
-        <!-- ══════════ CENTRAL DIVIDER — the split ══════════ -->
-        <!-- Draw with stroke-dashoffset from top to bottom -->
+        <!-- ══════════ CENTRAL DIVIDER ══════════ -->
         <line id="s3-divider-svg"
               x1="202" y1="30" x2="202" y2="690"
               stroke="url(#s3-div-glow)" stroke-width="2"
               stroke-dasharray="660" stroke-dashoffset="660"/>
-        <!-- Divider glow orb at midpoint -->
         <circle id="s3-div-orb" cx="202" cy="360" r="6"
-                fill="${C.white}" opacity="0" filter="url(#s3-click-glow)"/>
+                fill="white" opacity="0" filter="url(#s3-click-glow)"/>
 
-        <!-- ══════════ LARGE WATCHING EYE — passive symbol ══════════ -->
-        <!-- Appears on passive side as the ultimate metaphor -->
+        <!-- ══════════ WATCHING EYE ══════════ -->
         <g id="s3-big-eye" opacity="0" transform="translate(304,490)">
-          <!-- Eyelid shape -->
           <path d="M -55,0 Q 0,-38 55,0 Q 0,38 -55,0 Z"
                 fill="#1a1035" stroke="${C.purple}" stroke-width="1.5"/>
-          <!-- Iris -->
           <circle cx="0" cy="0" r="22" fill="url(#s3-iris-grad)"/>
-          <!-- Pupil -->
           <circle cx="0" cy="0" r="10" fill="#0a0818"/>
-          <!-- Pupil shine -->
           <circle cx="6" cy="-6" r="3.5" fill="white" opacity="0.9"/>
-          <!-- Outer eye highlight -->
           <path d="M -55,0 Q 0,-38 55,0" fill="none"
-                stroke="rgba(127,119,221,0.3)" stroke-width="0.8"/>
+                stroke="${C.purple}" stroke-opacity="0.3" stroke-width="0.8"/>
         </g>
 
-        <!-- ══════════ BOTTOM UNIFYING STATEMENT ══════════ -->
-        <g id="s3-bottom-statement" opacity="0" transform="translate(202,640)">
-          <rect x="-168" y="-30" width="336" height="60" rx="12"
-                fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-          <text font-family="'Space Grotesk',sans-serif" font-size="11"
-                fill="rgba(255,255,255,0.45)" text-anchor="middle" y="-8"
-                letter-spacing="2" font-weight="500">TOGETHER THEY CREATE</text>
-          <text y="14" font-family="'Space Grotesk',sans-serif" font-size="16"
-                fill="${C.white}" text-anchor="middle" font-weight="800">
-            Your Digital Record.
-          </text>
+        <!-- ══════════ BOTTOM STATEMENT — wrapper pattern ══════════ -->
+        <g transform="translate(202,640)">
+          <g id="s3-bottom-statement" opacity="0">
+            <rect x="-168" y="-30" width="336" height="60" rx="12"
+                  fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            <text font-family="'Space Grotesk',sans-serif" font-size="11"
+                  fill="rgba(255,255,255,0.45)" text-anchor="middle" y="-8"
+                  letter-spacing="2" font-weight="500">TOGETHER THEY CREATE</text>
+            <text y="14" font-family="'Space Grotesk',sans-serif" font-size="16"
+                  fill="white" text-anchor="middle" font-weight="800">
+              Your Digital Record.
+            </text>
+          </g>
         </g>
 
       </svg>`);
 
     // ── Reset states ──
-    gsap.set("#s3-active-header",   { opacity: 0, x: -24 });
-    gsap.set("#s3-passive-header",  { opacity: 0, x:  24 });
-    gsap.set(".s3-active-item",     { opacity: 0, x: -20 });
-    gsap.set(".s3-passive-item",    { opacity: 0, x:  20 });
+    gsap.set("#s3-active-header",   { opacity: 0, y: -16 });
+    gsap.set("#s3-passive-header",  { opacity: 0, y: -16 });
+    gsap.set(".s3-active-item",     { opacity: 0, y: 14 });
+    gsap.set(".s3-passive-item",    { opacity: 0, y: 14 });
     gsap.set("#s3-active-footer",   { opacity: 0 });
     gsap.set("#s3-passive-footer",  { opacity: 0 });
     gsap.set("#s3-divider-svg",     { strokeDashoffset: 660 });
-    gsap.set("#s3-div-orb",         { opacity: 0, scale: 0 });
-    gsap.set("#s3-big-eye",         { opacity: 0, scale: 0.3, transformOrigin:"304px 490px" });
+    gsap.set("#s3-div-orb",         { opacity: 0, scale: 0, transformOrigin: "center center" });
+    gsap.set("#s3-big-eye",         { opacity: 0, scale: 0.3, transformOrigin: "center center" });
     gsap.set("#s3-bottom-statement",{ opacity: 0, y: 16 });
   },
 
@@ -1007,31 +1029,27 @@ SceneControllers[3] = {
     tl.to("#s3-div-orb", {
       opacity: 1, scale: 1,
       duration: 0.4, ease: E.back,
-      transformOrigin: "center center",
     }, 0.5);
 
-    // ── Beat 2 (0.6s): Both headers slam in simultaneously ──
-    // VO: "Some parts are active..."
+    // ── Beat 2 (0.6s): Both headers drop in from above ──
     tl.to("#s3-active-header", {
-      opacity: 1, x: 0,
+      opacity: 1, y: 0,
       duration: 0.6, ease: E.back,
     }, 0.6);
     tl.to("#s3-passive-header", {
-      opacity: 1, x: 0,
+      opacity: 1, y: 0,
       duration: 0.6, ease: E.back,
-    }, 0.7); // slight offset for drama
+    }, 0.7);
 
-    // ── Beat 3 (1.2s): Active items slide in from left, one by one ──
-    // VO: "These include social media posts, videos, emails..."
+    // ── Beat 3 (1.2s): Active items rise up from below ──
     tl.to(".s3-active-item", {
-      opacity: 1, x: 0,
+      opacity: 1, y: 0,
       stagger: 0.18, duration: 0.45, ease: E.out,
     }, 1.2);
 
-    // ── Beat 4 (1.6s): Passive items materialise from right ──
-    // VO: "Other parts are passive. These are collected without us..."
+    // ── Beat 4 (1.6s): Passive items rise up from below ──
     tl.to(".s3-passive-item", {
-      opacity: 1, x: 0,
+      opacity: 1, y: 0,
       stagger: 0.18, duration: 0.45, ease: E.out,
     }, 1.6);
 
@@ -1040,16 +1058,16 @@ SceneControllers[3] = {
     tl.to("#s3-big-eye", {
       opacity: 1, scale: 1,
       duration: 0.8, ease: "back.out(1.4)",
-      transformOrigin: "304px 490px",
     }, 3.0);
-    // Eye "blink" — eyelids close briefly then open
+    // Eye "blink" — eyelids close briefly then open.
+    // FIX: scaleY now pivots around the eye's own centre ("center center"),
+    // not a hardcoded page coordinate, so the blink stays anchored even if
+    // the eye's translate() position is ever adjusted.
     tl.to("#s3-big-eye", {
       scaleY: 0.08, duration: 0.1, ease: "power2.in",
-      transformOrigin: "304px 490px",
     }, 3.9);
     tl.to("#s3-big-eye", {
       scaleY: 1, duration: 0.15, ease: "power2.out",
-      transformOrigin: "304px 490px",
     }, 4.0);
 
     // ── Beat 6 (3.2s): Footer lines fade in under each panel ──
@@ -1060,7 +1078,6 @@ SceneControllers[3] = {
     tl.to("#s3-div-orb", {
       scale: 3, opacity: 0,
       duration: 0.8, ease: "power2.out",
-      transformOrigin: "center center",
     }, 4.2);
 
     // ── Beat 8 (4.5s): Bottom unifying statement slides up ──
@@ -1085,149 +1102,121 @@ SceneControllers[3] = {
 /* ═══════════════════════════════════════════════════════════════════════════════
    SCENE 4  —  Digital Permanence  (2:00 – 2:40)
    VO: "One important characteristic of a digital footprint is that it can be
-        surprisingly difficult to erase..."
+        surprisingly difficult to erase. Once information has been shared
+        online, it may have already been downloaded, copied, archived, or
+        captured in screenshots by other users..."
+
+   UPGRADE NOTES:
+   - This scene previously had TWO parallel render systems fighting each
+     other: legacy static HTML already defined in index.html (#s4-post,
+     #s4-delete-btn, .copy-node ×5, #s4-stamp) PLUS a second full SVG layer
+     injected by this file with renamed IDs (#s4-delete-btn-svg,
+     #s4-stamp-svg) to dodge collisions. That's exactly the pattern that
+     caused the invisible-elements bug we hunted down in Scene 3 — running
+     two systems at once is fragile and hard to debug. This rewrite commits
+     to ONE system: the real HTML/CSS elements already defined in
+     index.html. The SVG injection is removed entirely.
+   - .scene__post-card and .copy-node__icon previously used leftover
+     dark-mode CSS (rgba(255,255,255,0.06) backgrounds, white-on-white
+     borders) that were invisible on the cream canvas — fixed in style.css.
+   - Added a connecting-lines SVG layer (#s4-copy-lines, defined directly
+     in index.html) that draws dashed lines from the post card out to each
+     copy-destination icon, reinforcing "this is already everywhere."
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[4] = {
 
   init() {
-    // Target: #scene-4 directly — no single wrapper div exists in index.html
-    // for this full-scene SVG. The SVG is prepended to the scene root.
     const el = qs("#scene-4");
     if (!el) { console.warn("[Scene 4] #scene-4 not found"); return; }
 
-    const prev = el.querySelector("#s4-svg");
-    if (prev) prev.remove();
+    // No SVG to inject or remove anymore — this scene now animates the
+    // real HTML elements that already exist in index.html.
 
-    el.insertAdjacentHTML("afterbegin", `
-      <svg id="s4-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
-           width="405" height="720" style="position:absolute;top:0;left:0;pointer-events:none">
-
-        <!-- Delete button -->
-        <!-- NOTE: renamed s4-delete-btn → s4-delete-btn-svg to avoid collision with <div id="s4-delete-btn"> -->
-        <g id="s4-delete-btn-svg" opacity="0" transform="translate(202,240)">
-          <rect x="-64" y="-22" width="128" height="44" rx="22"
-                fill="${C.red}" opacity="0.85"/>
-          <text font-family="'Space Grotesk',sans-serif" font-size="14"
-                fill="white" text-anchor="middle" dy="5" font-weight="700">
-            🗑 Delete Post
-          </text>
-        </g>
-
-        <!-- Fail X indicator -->
-        <g id="s4-fail" opacity="0" transform="translate(202,240)">
-          <circle cx="0" cy="0" r="38"
-                  fill="none" stroke="${C.red}" stroke-width="3"/>
-          <line x1="-20" y1="-20" x2="20" y2="20"
-                stroke="${C.red}" stroke-width="4" stroke-linecap="round"/>
-          <line x1="20"  y1="-20" x2="-20" y2="20"
-                stroke="${C.red}" stroke-width="4" stroke-linecap="round"/>
-        </g>
-
-        <!-- Server nodes — copies multiplying -->
-        ${[
-          { x: 100, y: 370 }, { x: 202, y: 350 }, { x: 304, y: 380 },
-          { x: 68,  y: 470 }, { x: 160, y: 458 }, { x: 250, y: 455 }, { x: 340, y: 475 },
-        ].map((n, i) => `
-          <g class="s4-server" id="s4-server-${i}" opacity="0"
-             transform="translate(${n.x},${n.y})">
-            <rect x="-22" y="-16" width="44" height="32" rx="4"
-                  fill="#14141F" stroke="${C.blue}" stroke-width="1.2"/>
-            <rect x="-16" y="-8"  width="32" height="4" rx="2"
-                  fill="${C.blue}" opacity="0.6"/>
-            <rect x="-16" y="1"   width="20" height="4" rx="2"
-                  fill="${C.muted}" opacity="0.4"/>
-            <circle cx="14" cy="3" r="3" fill="${C.teal}" opacity="0.8"/>
-          </g>`).join("")}
-
-        <!-- Connection lines -->
-        <g id="s4-server-lines" opacity="0">
-          <line x1="100" y1="370" x2="202" y2="350" stroke="${C.blue}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
-          <line x1="202" y1="350" x2="304" y2="380" stroke="${C.blue}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
-          <line x1="68"  y1="470" x2="160" y2="458" stroke="${C.blue}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
-          <line x1="160" y1="458" x2="250" y2="455" stroke="${C.blue}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
-          <line x1="250" y1="455" x2="340" y2="475" stroke="${C.blue}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
-          <line x1="100" y1="370" x2="68"  y2="470" stroke="${C.purple}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.4"/>
-          <line x1="304" y1="380" x2="340" y2="475" stroke="${C.purple}"
-                stroke-width="0.8" stroke-dasharray="4 3" opacity="0.4"/>
-        </g>
-
-        <!-- Quote -->
-        <g id="s4-quote" opacity="0" transform="translate(202,590)">
-          <text font-family="Inter,sans-serif" font-size="10"
-                fill="${C.white}" text-anchor="middle" opacity="0.85">
-            "The internet never truly forgets."
-          </text>
-        </g>
-
-        <!-- Archive stamp -->
-        <!-- NOTE: renamed s4-stamp → s4-stamp-svg to avoid collision with <div id="s4-stamp"> in index.html -->
-        <g id="s4-stamp-svg" opacity="0" transform="translate(202,145)">
-          <rect x="-58" y="-18" width="116" height="36" rx="4"
-                fill="none" stroke="${C.amber}" stroke-width="2"
-                stroke-dasharray="3 2"/>
-          <text font-family="'Space Grotesk',sans-serif" font-size="13"
-                fill="${C.amber}" text-anchor="middle" dy="5"
-                font-weight="700" letter-spacing="3">ARCHIVED</text>
-        </g>
-
-      </svg>`);
-
-    // FIX: transformOrigin "center center" so scale animates from element centre
-    gsap.set("#s4-delete-btn-svg", { opacity: 0, scale: 0.9,
+    // ── Reset states ──
+    gsap.set("#s4-post",         { opacity: 0, y: 24, scale: 0.94,
       transformOrigin: "center center" });
-    gsap.set("#s4-fail",           { opacity: 0, scale: 0.4,
+    gsap.set("#s4-delete-btn",   { scale: 1, transformOrigin: "center center" });
+    gsap.set(".copy-node",       { opacity: 0, scale: 0.4,
       transformOrigin: "center center" });
-    gsap.set(".s4-server",         { opacity: 0, scale: 0.5,
-      transformOrigin: "center center" });
-    gsap.set("#s4-server-lines",   { opacity: 0 });
-    gsap.set("#s4-quote",          { opacity: 0, y: 12 });
-    gsap.set("#s4-stamp-svg",      { opacity: 0, rotation: -8, scale: 1.3,
-      transformOrigin: "center center" });
+    gsap.set("#s4-stamp",        { opacity: 0, scale: 0,
+      rotation: -12 }); // base CSS already centers + rotates this element
+    gsap.set("#s4-copy-lines line", { opacity: 0, strokeDashoffset: 240 });
+
+    // Pre-compute each line's true pixel length so the dash-draw animation
+    // is accurate rather than guessed — getTotalLength() is the reliable way.
+    const lines = el.querySelectorAll("#s4-copy-lines line");
+    lines.forEach(line => {
+      try {
+        const len = line.getTotalLength();
+        line.style.strokeDasharray  = `${len}`;
+        line.style.strokeDashoffset = `${len}`;
+        line.dataset.length = len;
+      } catch (e) {
+        // getTotalLength can fail if the SVG isn't laid out yet — the CSS
+        // dasharray fallback (5 4, near Scene start) still looks fine.
+      }
+    });
   },
 
   play() {
     // TIMESTAMP: 2:00
+    // VO: "One important characteristic of a digital footprint is that it
+    //      can be surprisingly difficult to erase..."
     const tl = gsap.timeline({ id: "scene-4" });
 
-    tl.to("#s4-delete-btn-svg", { opacity: 1, scale: 1,
-      duration: 0.6, ease: E.back }, 0);
+    // ── Beat 1 (0s): Post card rises in ──
+    tl.to("#s4-post", { opacity: 1, y: 0, scale: 1,
+      duration: 0.8, ease: E.back }, 0);
 
-    // Button shake (user pressing it)
-    tl.to("#s4-delete-btn-svg", {
-      x: 6, duration: 0.05, yoyo: true, repeat: 5, ease: "none",
+    // ── Beat 2 (0.9s): User presses delete — button shakes ──
+    tl.to("#s4-delete-btn", {
+      scale: 0.85, duration: 0.08, ease: "power2.in",
     }, 0.9);
+    tl.to("#s4-delete-btn", {
+      x: 4, duration: 0.05, yoyo: true, repeat: 5, ease: "none",
+    }, 1.0);
+    tl.to("#s4-delete-btn", {
+      scale: 1, duration: 0.15, ease: E.back,
+    }, 1.35);
 
-    // Fail icon replaces button
-    tl.to("#s4-delete-btn-svg", { opacity: 0, scale: 0.8,
-      duration: 0.25, ease: "power2.in" }, 1.3);
-    tl.to("#s4-fail", { opacity: 1, scale: 1,
-      duration: 0.4, ease: E.elastic }, 1.5);
+    // ── Beat 3 (1.6s): Delete "fails" — button dims to show it didn't work ──
+    tl.to("#s4-delete-btn", { opacity: 0.3,
+      duration: 0.3, ease: "power2.in" }, 1.6);
 
-    // Servers multiply
-    tl.to(".s4-server", { opacity: 1, scale: 1,
-      stagger: 0.1, duration: 0.4, ease: E.back }, 2.0);
-    tl.to("#s4-server-lines", { opacity: 1,
-      duration: 0.6, ease: E.out }, 2.3);
+    // ── Beat 4 (2.0s): Connector lines draw outward from the post ──
+    // VO: "...it may have already been downloaded, copied, archived..."
+    tl.to("#s4-copy-lines line", { opacity: 0.45,
+      duration: 0.2, ease: "none" }, 2.0);
+    tl.to("#s4-copy-lines line", {
+      strokeDashoffset: 0,
+      stagger: 0.1,
+      duration: 0.6, ease: E.out,
+    }, 2.0);
 
-    // Servers pulse
-    tl.to(".s4-server", {
+    // ── Beat 5 (2.1s): Copy-destination nodes pop in along the lines ──
+    tl.to(".copy-node", { opacity: 1, scale: 1,
+      stagger: 0.12, duration: 0.45, ease: E.back }, 2.1);
+
+    // ── Beat 6 (3.0s): Copy nodes pulse — emphasising they're permanent/active ──
+    tl.to(".copy-node__icon", {
       scale: 1.08, duration: 0.4, yoyo: true, repeat: 1,
       stagger: 0.08, ease: E.inOut,
       transformOrigin: "center center",
     }, 3.0);
 
-    // Archive stamp slams in
-    tl.to("#s4-stamp-svg", { opacity: 1, rotation: -3, scale: 1,
-      duration: 0.5, ease: E.back }, 3.6);
+    // ── Beat 7 (3.6s): Lines keep gently "flowing" — dash offset drifts ──
+    tl.to("#s4-copy-lines line", {
+      strokeDashoffset: "-=16",
+      duration: 2, ease: "none", repeat: -1,
+    }, 3.6);
 
-    tl.to("#s4-quote", { opacity: 1, y: 0,
-      duration: 0.7, ease: E.out }, 4.0);
+    // ── Beat 8 (3.7s): DELETED stamp slams in, ironic punchline ──
+    tl.to("#s4-stamp", { opacity: 1, scale: 1, rotation: -8,
+      duration: 0.5, ease: E.back }, 3.7);
+
+    // Stamp settles to its natural resting rotation
+    tl.to("#s4-stamp", { rotation: -12,
+      duration: 0.3, ease: E.out }, 4.2);
 
     return tl;
   },
@@ -1245,9 +1234,20 @@ SceneControllers[5] = {
     const el = qs("#s5-ink-wrap");
     if (!el) { console.warn("[Scene 5] #s5-ink-wrap not found"); return; }
 
+    // The static "Digital Permanence" label lives outside the wrap, in the
+    // markup as #s5-label. We reuse it (rather than duplicate text in SVG)
+    // and rewrite its copy mid-scene for the platform-spread beat.
+    const label = qs("#s5-label");
+    if (label) {
+      const eyebrow = label.querySelector(".label__eyebrow");
+      const term    = label.querySelector(".label__term");
+      if (eyebrow) eyebrow.textContent = "Digital permanence";
+      if (term)    term.textContent    = "It spreads in moments";
+    }
+
     el.innerHTML = `
       <svg id="s5-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
-           width="405" height="720">
+           width="405" height="720" style="overflow:visible;">
 
         <defs>
           <radialGradient id="s5-ink-grad" cx="50%" cy="50%" r="50%">
@@ -1259,102 +1259,258 @@ SceneControllers[5] = {
             <stop offset="0%"   stop-color="#0A1628" stop-opacity="1"/>
             <stop offset="100%" stop-color="#060810" stop-opacity="1"/>
           </radialGradient>
+          <!-- Full-glass diffuse tint — the ink that "can't be removed" -->
+          <radialGradient id="s5-diffuse-grad" cx="50%" cy="35%" r="75%">
+            <stop offset="0%"   stop-color="${C.purple}" stop-opacity="0.85"/>
+            <stop offset="55%"  stop-color="${C.blue}"   stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="${C.purple}" stop-opacity="0.5"/>
+          </radialGradient>
+          <radialGradient id="s5-node-grad" cx="40%" cy="35%" r="65%">
+            <stop offset="0%"   stop-color="#FFFFFF"     stop-opacity="0.9"/>
+            <stop offset="35%"  stop-color="${C.blue}"   stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="${C.purple}" stop-opacity="0.9"/>
+          </radialGradient>
+          <radialGradient id="s5-origin-grad" cx="40%" cy="35%" r="65%">
+            <stop offset="0%"   stop-color="#FFFFFF"    stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="${C.amber}" stop-opacity="0.95"/>
+          </radialGradient>
+          <filter id="s5-node-glow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <!-- Clip the ink so it never visually escapes the glass walls -->
+          <clipPath id="s5-glass-clip">
+            <path d="M -68,-126 L -77,108 Q -77,126 -59,126
+                     L 59,126 Q 77,126 77,108 L 68,-126 Z"
+                  transform="translate(202,330)"/>
+          </clipPath>
         </defs>
 
-        <!-- Glass of water -->
-        <g id="s5-glass" transform="translate(202,370)">
-          <path d="M -70,-130 L -80,110 Q -80,130 -60,130
-                   L 60,130 Q 80,130 80,110 L 70,-130 Z"
-                fill="url(#s5-water-grad)"
-                stroke="${C.blue}" stroke-width="1.5" opacity="0.9"/>
-          <ellipse cx="0" cy="-130" rx="70" ry="10"
-                   fill="${C.blue}" opacity="0.25"/>
-          <path d="M -70,-130 Q 0,-145 70,-130"
-                fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
-          <path d="M -68,-100 L -76,100"
-                fill="none" stroke="white" stroke-width="3"
-                stroke-linecap="round" opacity="0.08"/>
+        <!-- Ambient backdrop glow so the glass doesn't float in a void -->
+        <ellipse cx="202" cy="330" rx="190" ry="220"
+                 fill="${C.blue}" opacity="0.05"/>
+
+        <!-- ════════════ ACT 1 — Ink in the glass ════════════ -->
+        <g id="s5-act1">
+
+          <!-- Glass of water -->
+          <g id="s5-glass" transform="translate(202,330)">
+            <path d="M -70,-130 L -80,110 Q -80,130 -60,130
+                     L 60,130 Q 80,130 80,110 L 70,-130 Z"
+                  fill="url(#s5-water-grad)"
+                  stroke="${C.blue}" stroke-width="1.5" opacity="0.9"/>
+            <ellipse cx="0" cy="-130" rx="70" ry="10"
+                     fill="${C.blue}" opacity="0.25"/>
+            <path d="M -70,-130 Q 0,-145 70,-130"
+                  fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
+            <path d="M -68,-100 L -76,100"
+                  fill="none" stroke="white" stroke-width="3"
+                  stroke-linecap="round" opacity="0.08"/>
+          </g>
+
+          <!-- Everything ink-related is clipped to the glass interior -->
+          <g clip-path="url(#s5-glass-clip)">
+            <!-- Full diffuse tint — fades in slowly to show total, permanent spread -->
+            <rect id="s5-diffuse" x="32" y="190" width="340" height="280"
+                  fill="url(#s5-diffuse-grad)" opacity="0"/>
+            <!-- Three expanding ink rings on impact -->
+            <circle id="s5-ink-spread-1" cx="202" cy="225" r="0"
+                    fill="url(#s5-ink-grad)" opacity="0"/>
+            <circle id="s5-ink-spread-2" cx="202" cy="225" r="0"
+                    fill="none" stroke="${C.purple}" stroke-width="1.5" opacity="0"/>
+            <circle id="s5-ink-spread-3" cx="202" cy="225" r="0"
+                    fill="none" stroke="${C.blue}"   stroke-width="1"   opacity="0"/>
+          </g>
+
+          <!-- Ink drop, falling from above the glass -->
+          <g id="s5-drop" transform="translate(202,150)">
+            <ellipse cx="0" cy="0" rx="8" ry="12" fill="${C.purple}"/>
+            <path d="M -3,-10 Q 0,-20 3,-10" fill="${C.purple}" opacity="0.7"/>
+          </g>
+
+          <!-- Particle host for ink-impact sparkle helper -->
+          <g id="s5-particles" transform="translate(202,225)"/>
+
+          <!-- Caption beat 1 -->
+          <g id="s5-caption-1" opacity="0" transform="translate(202,510)">
+            <text font-family="Inter,sans-serif" font-size="11"
+                  fill="${C.muted}" text-anchor="middle">At first, concentrated.</text>
+            <text y="22" font-family="'Space Grotesk',sans-serif" font-size="15"
+                  fill="${C.white}" text-anchor="middle" font-weight="700">
+              Within moments, everywhere.
+            </text>
+          </g>
         </g>
 
-        <!-- Ink drop -->
-        <g id="s5-drop" transform="translate(202,180)">
-          <ellipse cx="0" cy="0" rx="8" ry="12" fill="${C.purple}"/>
-          <path d="M -3,-10 Q 0,-20 3,-10" fill="${C.purple}" opacity="0.7"/>
+        <!-- ════════════ ACT 2 — Spread across platforms ════════════ -->
+        <g id="s5-act2" opacity="0" transform="translate(202,300)">
+
+          <!-- Connecting lines drawn from origin out to each platform node -->
+          <g id="s5-net-lines" stroke="${C.blue}" stroke-width="1"
+             fill="none" opacity="0.6"></g>
+
+          <!-- Outer "reach" pulse rings -->
+          <circle id="s5-net-pulse-1" cx="0" cy="0" r="0"
+                  fill="none" stroke="${C.purple}" stroke-width="1" opacity="0"/>
+          <circle id="s5-net-pulse-2" cx="0" cy="0" r="0"
+                  fill="none" stroke="${C.blue}" stroke-width="0.8" opacity="0"/>
+
+          <!-- Platform nodes (populated by JS below) -->
+          <g id="s5-net-nodes"></g>
+
+          <!-- Origin node — the single original post -->
+          <g id="s5-net-origin">
+            <circle r="11" fill="url(#s5-origin-grad)" filter="url(#s5-node-glow)"/>
+            <circle r="11" fill="none" stroke="${C.amber}" stroke-width="1" opacity="0.6"/>
+          </g>
+
+          <!-- Caption beat 2 -->
+          <g id="s5-caption-2" opacity="0" transform="translate(0,250)">
+            <text font-family="Inter,sans-serif" font-size="11"
+                  fill="${C.muted}" text-anchor="middle">One post. Countless platforms.</text>
+            <text y="22" font-family="'Space Grotesk',sans-serif" font-size="15"
+                  fill="${C.white}" text-anchor="middle" font-weight="700">
+              Audiences far beyond the original.
+            </text>
+          </g>
         </g>
-
-        <!-- Ink spread rings -->
-        <circle id="s5-ink-spread-1" cx="202" cy="250" r="0"
-                fill="url(#s5-ink-grad)" opacity="0"/>
-        <circle id="s5-ink-spread-2" cx="202" cy="250" r="0"
-                fill="none" stroke="${C.purple}" stroke-width="1.5" opacity="0"/>
-        <circle id="s5-ink-spread-3" cx="202" cy="250" r="0"
-                fill="none" stroke="${C.blue}"   stroke-width="1"   opacity="0"/>
-
-        <!-- Caption -->
-        <g id="s5-caption" opacity="0" transform="translate(202,570)">
-          <text font-family="Inter,sans-serif" font-size="11"
-                fill="${C.muted}" text-anchor="middle">Once it spreads…</text>
-          <text y="22" font-family="'Space Grotesk',sans-serif" font-size="15"
-                fill="${C.white}" text-anchor="middle" font-weight="700">
-            you can't un-drop it.
-          </text>
-        </g>
-
-        <!-- Particle host for helper -->
-        <g id="s5-particles" transform="translate(202,310)"/>
 
       </svg>`;
 
+    // ── Build the radial network of platform nodes programmatically ──
+    const svg = qs("#s5-svg");
+    const lines = svg.querySelector("#s5-net-lines");
+    const nodes = svg.querySelector("#s5-net-nodes");
+    const icons = ["♥", "💬", "▶", "↻", "🔖", "@"]; // heart / comment / play / repost / save / mention
+    const radius = 130;
+    const count  = icons.length;
+    this._netCoords = [];
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      this._netCoords.push({ x, y });
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("class", "s5-net-line");
+      line.setAttribute("d", `M 0,0 L ${x.toFixed(1)},${y.toFixed(1)}`);
+      const len = Math.hypot(x, y);
+      line.setAttribute("stroke-dasharray", String(len));
+      line.setAttribute("stroke-dashoffset", String(len));
+      lines.appendChild(line);
+
+      const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      node.setAttribute("class", "s5-net-node");
+      node.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(0)`);
+      node.innerHTML = `
+        <circle r="18" fill="url(#s5-node-grad)" filter="url(#s5-node-glow)" opacity="0.95"/>
+        <text y="5" font-family="Inter,sans-serif" font-size="13" text-anchor="middle"
+              fill="#0A0A14">${icons[i]}</text>`;
+      nodes.appendChild(node);
+    }
+
+    gsap.set("#s5-act1", { opacity: 1 });
+    gsap.set("#s5-act2", { opacity: 0 });
     gsap.set("#s5-glass",  { opacity: 0, y: 30, scale: 0.9,
       transformOrigin: "center center" });
-    gsap.set("#s5-drop",   { opacity: 0, y: -60 });
+    gsap.set("#s5-drop",   { opacity: 0, y: -50 });
     gsap.set(["#s5-ink-spread-1", "#s5-ink-spread-2", "#s5-ink-spread-3"],
              { opacity: 0 });
-    gsap.set("#s5-caption", { opacity: 0, y: 14 });
+    gsap.set("#s5-diffuse", { opacity: 0 });
+    gsap.set("#s5-caption-1", { opacity: 0, y: 14 });
+    gsap.set("#s5-caption-2", { opacity: 0, y: 14 });
+    gsap.set("#s5-net-origin", { opacity: 0, scale: 0, transformOrigin: "center center" });
+    gsap.set("#s5-net-nodes .s5-net-node", { opacity: 0, transformOrigin: "center center" });
+    gsap.set(["#s5-net-pulse-1", "#s5-net-pulse-2"], { opacity: 0 });
+    gsap.set(label, { opacity: 0, y: -10 });
   },
 
   play() {
     // TIMESTAMP: 2:40
     const tl = gsap.timeline({ id: "scene-5" });
+    const label   = qs("#s5-label");
+    const eyebrow = label?.querySelector(".label__eyebrow");
+    const term    = label?.querySelector(".label__term");
 
+    // ── Label intro: "Digital permanence / It spreads in moments" ──
+    tl.to(label, { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 0.1);
+
+    // ── ACT 1 — ink concentrated, then spreads through the glass ──
     tl.to("#s5-glass", { opacity: 1, y: 0, scale: 1,
-      duration: 0.9, ease: E.back }, 0);
+      duration: 0.8, ease: E.back }, 0.2);
 
-    // Drop appears then falls
     tl.to("#s5-drop", { opacity: 1, y: 0,
-      duration: 0.05, ease: "none" }, 0.7);
-    tl.to("#s5-drop", { y: 70, duration: 0.55, ease: "power2.in" }, 0.72);
+      duration: 0.05, ease: "none" }, 0.85);
+    tl.to("#s5-drop", { y: 75, duration: 0.5, ease: "power2.in" }, 0.87);
 
-    // Impact
     tl.to("#s5-drop", { opacity: 0, scale: 1.8,
-      duration: 0.15, ease: "power2.out" }, 1.27);
+      duration: 0.15, ease: "power2.out" }, 1.35);
 
-    // Three expanding rings
     tl.to("#s5-ink-spread-1", { opacity: 0.6, r: 50,
-      duration: 1.2, ease: "power2.out" }, 1.28);
-    tl.to("#s5-ink-spread-1", { opacity: 0,
-      duration: 1.0, ease: "power2.in"  }, 1.9);
+      duration: 1.0, ease: "power2.out" }, 1.36);
+    tl.to("#s5-ink-spread-1", { opacity: 0, duration: 0.8, ease: "power2.in" }, 1.9);
 
     tl.to("#s5-ink-spread-2", { opacity: 0.7, r: 90,
-      duration: 1.6, ease: "power2.out" }, 1.4);
-    tl.to("#s5-ink-spread-2", { opacity: 0,
-      duration: 0.9, ease: "power2.in"  }, 2.4);
+      duration: 1.3, ease: "power2.out" }, 1.45);
+    tl.to("#s5-ink-spread-2", { opacity: 0, duration: 0.8, ease: "power2.in" }, 2.3);
 
-    tl.to("#s5-ink-spread-3", { opacity: 0.4, r: 140,
-      duration: 2.0, ease: "power2.out" }, 1.55);
-    tl.to("#s5-ink-spread-3", { opacity: 0,
-      duration: 1.2, ease: "power2.in"  }, 2.9);
+    tl.to("#s5-ink-spread-3", { opacity: 0.4, r: 130,
+      duration: 1.6, ease: "power2.out" }, 1.55);
+    tl.to("#s5-ink-spread-3", { opacity: 0, duration: 0.9, ease: "power2.in" }, 2.7);
 
-    tl.to("#s5-caption", { opacity: 1, y: 0,
-      duration: 0.8, ease: E.out }, 3.0);
+    // The "impossible to remove completely" beat — ink tints the whole glass
+    tl.to("#s5-diffuse", { opacity: 0.85, duration: 1.4, ease: "power2.out" }, 1.7);
 
-    // Optional sparkles
     tl.add(() => {
       const host = qs("#s5-particles");
       if (host && window.AnimHelpers?.createSparkles) {
         AnimHelpers.createSparkles(host, 18, C.purple);
       }
-    }, 1.5);
+    }, 1.55);
+
+    tl.to("#s5-caption-1", { opacity: 1, y: 0, duration: 0.7, ease: E.out }, 2.1);
+    tl.to("#s5-caption-1", { opacity: 0, y: -10, duration: 0.4, ease: "power2.in" }, 3.6);
+
+    // ── Transition: glass dissolves, network of platforms rises ──
+    tl.to("#s5-act1", { opacity: 0, scale: 0.92, transformOrigin: "center center",
+      duration: 0.6, ease: "power2.in" }, 3.6);
+
+    tl.call(() => {
+      if (eyebrow) eyebrow.textContent = "It doesn't stay put";
+      if (term)    term.textContent    = "It spreads across platforms";
+    }, null, 4.0);
+    tl.fromTo(label, { y: -6, opacity: 0.4 }, { y: 0, opacity: 1, duration: 0.4, ease: E.out }, 4.0);
+
+    tl.to("#s5-act2", { opacity: 1, duration: 0.5, ease: E.out }, 4.0);
+
+    // Origin node pops in first — this is the single original post
+    tl.to("#s5-net-origin", { opacity: 1, scale: 1, duration: 0.5, ease: E.back }, 4.1);
+
+    // Lines draw outward from the origin to each platform
+    tl.to("#s5-net-lines .s5-net-line", { strokeDashoffset: 0,
+      duration: 0.7, ease: "power3.out", stagger: 0.06 }, 4.4);
+
+    // Platform nodes pop in along the lines, staggered like a ripple
+    tl.to("#s5-net-nodes .s5-net-node", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.back, stagger: 0.07 }, 4.55);
+
+    // Reach pulses ripple out past the outermost nodes
+    tl.to("#s5-net-pulse-1", { opacity: 0.5, r: 175,
+      duration: 1.1, ease: "power2.out" }, 5.1);
+    tl.to("#s5-net-pulse-1", { opacity: 0, duration: 0.6, ease: "power2.in" }, 5.9);
+
+    tl.to("#s5-net-pulse-2", { opacity: 0.35, r: 210,
+      duration: 1.3, ease: "power2.out" }, 5.3);
+    tl.to("#s5-net-pulse-2", { opacity: 0, duration: 0.7, ease: "power2.in" }, 6.2);
+
+    // Gentle ambient drift on the nodes so the network feels alive
+    tl.to("#s5-net-nodes .s5-net-node", {
+      y: "+=4", duration: 1.6, yoyo: true, repeat: -1,
+      ease: "sine.inOut", stagger: { each: 0.15, from: "random" },
+    }, 5.4);
+
+    tl.to("#s5-caption-2", { opacity: 1, y: 0, duration: 0.7, ease: E.out }, 5.6);
 
     return tl;
   },
@@ -1364,156 +1520,142 @@ SceneControllers[5] = {
 /* ═══════════════════════════════════════════════════════════════════════════════
    SCENE 6  —  Universities & Employers  (3:20 – 4:00)
    VO: "Today, our digital footprints influence many aspects of our lives.
-        Universities may review applicants..."
+        Universities may review applicants' online presence. Employers often
+        search for candidates before making hiring decisions..."
+
+   UPGRADE NOTES:
+   - Previous version called `el.innerHTML = ...` on #s6-profile and
+     replaced it with a hand-built duplicate SVG (profile card, magnifier,
+     three social cards, verdict badge) — but never touched the real
+     #s6-orbit (4 institution icons: 🎓💼🏆🤝) or #s6-search (search bar +
+     3 results incl. the flagged warning result) that already exist,
+     fully styled, in index.html. Those sat at their default CSS
+     opacity:0 the entire scene and were never shown. This rewrite drops
+     the SVG entirely and animates the real elements, so every piece
+     index.html already built is finally used.
+   - .profile__avatar, .orbit-icon, .search__bar, .search-result--normal
+     all had leftover dark-mode CSS (translucent-white-on-black) that was
+     invisible on the cream canvas — fixed in style.css.
+   - Orbit icon positions are now computed here (4 institutions placed in
+     a ring around the profile card) since index.html doesn't hardcode
+     per-icon coordinates — GSAP sets them via x/y offsets from center.
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[6] = {
 
   init() {
-    // Target: #s6-profile  (class="scene__profile-card" id="s6-profile" in index.html)
-    const el = qs("#s6-profile");
-    if (!el) { console.warn("[Scene 6] #s6-profile not found"); return; }
+    const scene = qs("#scene-6");
+    if (!scene) { console.warn("[Scene 6] #scene-6 not found"); return; }
 
-    el.innerHTML = `
-      <svg id="s6-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
-           width="405" height="720">
+    // No SVG injection — this scene animates the real index.html elements:
+    // #s6-profile, #s6-orbit (.orbit-icon ×4), #s6-search (#s6-search-text,
+    // #s6-results, .search-result ×2, #s6-flagged).
 
-        <!-- Applicant profile card -->
-        <g id="s6-profile-card" transform="translate(202,200)">
-          <rect x="-130" y="-100" width="260" height="200" rx="16"
-                fill="#0E0E1C" stroke="${C.blue}" stroke-width="1.5"/>
-          <circle cx="0" cy="-40" r="38"
-                  fill="none" stroke="${C.blue}" stroke-width="2" opacity="0.6"/>
-          <circle cx="0" cy="-40" r="30" fill="${C.blue}" opacity="0.25"/>
-          <text x="0" y="-32" font-size="28" text-anchor="middle">👤</text>
-          <text y="20" font-family="'Space Grotesk',sans-serif" font-size="14"
-                fill="${C.white}" text-anchor="middle" font-weight="700">
-            Alex Johnson
-          </text>
-          <text y="40" font-family="Inter,sans-serif" font-size="9"
-                fill="${C.muted}" text-anchor="middle">
-            College Applicant · Class of 2026
-          </text>
-          <line x1="-100" y1="56" x2="100" y2="56"
-                stroke="${C.blue}" stroke-width="0.5" opacity="0.3"/>
-          <text x="-80" y="80" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.teal}" font-weight="600">GPA 3.9</text>
-          <text x="10"  y="80" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.amber}" font-weight="600">SAT 1490</text>
-          <text x="80"  y="80" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.purple}" font-weight="600">10 ECs</text>
-        </g>
+    // ── Orbit icon target positions ──
+    // Each institution icon orbits the profile card in a loose ring.
+    // Coordinates are offsets (px) from the icon's own centred starting
+    // point, applied via GSAP x/y — keeps the layout fully responsive
+    // since we never hardcode top/left in CSS.
+    const orbitTargets = {
+      "#s6-uni":   { x: -118, y: -150 },  // top-left    — University
+      "#s6-emp":   { x:  118, y: -150 },  // top-right   — Employer
+      "#s6-grant": { x: -130, y:   20 },  // mid-left    — Scholarship
+      "#s6-biz":   { x:  130, y:   20 },  // mid-right   — Business
+    };
 
-        <!-- Magnifying glass -->
-        <g id="s6-magnifier" transform="translate(310,150)">
-          <circle cx="0" cy="0" r="28"
-                  fill="none" stroke="${C.amber}" stroke-width="2.5"/>
-          <line x1="20" y1="20" x2="40" y2="40"
-                stroke="${C.amber}" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="-8" cy="-8" r="5" fill="white" opacity="0.12"/>
-        </g>
-
-        <!-- Social media thumbnails -->
-        ${[
-          { x: 90,  y: 415, color: C.blue,   icon: "🐦", label: "Twitter / X" },
-          { x: 202, y: 415, color: C.purple,  icon: "📸", label: "Instagram"   },
-          { x: 314, y: 415, color: C.teal,    icon: "💼", label: "LinkedIn"    },
-        ].map((s, i) => `
-          <g class="s6-social" id="s6-social-${i}"
-             opacity="0" transform="translate(${s.x},${s.y})">
-            <rect x="-38" y="-46" width="76" height="92" rx="10"
-                  fill="#0E0E1C" stroke="${s.color}" stroke-width="1.2"/>
-            <text y="-16" font-size="22" text-anchor="middle">${s.icon}</text>
-            <text y="12" font-family="Inter,sans-serif" font-size="7.5"
-                  fill="${C.muted}" text-anchor="middle">${s.label}</text>
-            <rect x="-28" y="22" width="56" height="5" rx="2.5"
-                  fill="${s.color}" opacity="0.25"/>
-            <rect x="-28" y="32" width="36" height="5" rx="2.5"
-                  fill="${C.muted}" opacity="0.18"/>
-          </g>`).join("")}
-
-        <!-- Verdict badge -->
-        <g id="s6-verdict" transform="translate(202,550)">
-          <rect x="-72" y="-18" width="144" height="36" rx="18"
-                fill="${C.amber}" opacity="0.15"
-                stroke="${C.amber}" stroke-width="1.5"/>
-          <text font-family="'Space Grotesk',sans-serif" font-size="12"
-                fill="${C.amber}" text-anchor="middle" dy="4" font-weight="700"
-                letter-spacing="1">⚖ UNDER REVIEW</text>
-        </g>
-
-        <!-- Connecting lines profile → socials -->
-        <g id="s6-connect-lines" opacity="0">
-          <line x1="202" y1="300" x2="90"  y2="369"
-                stroke="${C.blue}"   stroke-width="0.8" stroke-dasharray="4 4"/>
-          <line x1="202" y1="300" x2="202" y2="369"
-                stroke="${C.purple}" stroke-width="0.8" stroke-dasharray="4 4"/>
-          <line x1="202" y1="300" x2="314" y2="369"
-                stroke="${C.teal}"   stroke-width="0.8" stroke-dasharray="4 4"/>
-        </g>
-
-        <!-- Headline -->
-        <g id="s6-headline" opacity="0" transform="translate(202,640)">
-          <text font-family="'Space Grotesk',sans-serif" font-size="13"
-                fill="${C.white}" text-anchor="middle" font-weight="700">
-            Universities &amp; Employers
-          </text>
-          <text y="18" font-family="Inter,sans-serif" font-size="9"
-                fill="${C.muted}" text-anchor="middle">
-            are reviewing your digital trail.
-          </text>
-        </g>
-
-      </svg>`;
-
-    gsap.set("#s6-profile-card",  { opacity: 0, y: 30, scale: 0.92,
+    // ── Reset states ──
+    gsap.set("#s6-profile",        { opacity: 0, y: 28, scale: 0.92,
       transformOrigin: "center center" });
-    gsap.set("#s6-magnifier",     { opacity: 0, scale: 0.5, rotation: -20,
+    gsap.set(".profile__avatar-ring", { scale: 0.6, opacity: 0,
       transformOrigin: "center center" });
-    gsap.set(".s6-social",        { opacity: 0, y: 20, scale: 0.8,
+    gsap.set(".profile__name",     { opacity: 0, y: 8 });
+    gsap.set(".profile__handle",   { opacity: 0, y: 8 });
+
+    gsap.set("#s6-orbit", { opacity: 1 }); // container itself always visible;
+                                            // individual icons handle their own fade
+    gsap.set(".orbit-icon", { opacity: 0, scale: 0.3, x: 0, y: 0,
       transformOrigin: "center center" });
-    gsap.set("#s6-connect-lines", { opacity: 0 });
-    gsap.set("#s6-verdict",       { opacity: 0, scale: 0.8,
-      transformOrigin: "center center" });
-    gsap.set("#s6-headline",      { opacity: 0, y: 10 });
+
+    gsap.set("#s6-search",     { opacity: 0, y: 24 });
+    gsap.set("#s6-search-text",{ /* TextPlugin will set text content */ });
+    gsap.set(".search__cursor",{ opacity: 1 });
+    gsap.set("#s6-results",    { opacity: 0 });
+    gsap.set(".search-result", { opacity: 0, x: -14 });
+
+    // Clear any previously typed search text so re-entering the scene
+    // (via jumpToScene) starts clean.
+    const searchText = scene.querySelector("#s6-search-text");
+    if (searchText) searchText.textContent = "";
+
+    // Stash orbit targets on the scene element so play() can read them
+    // without redefining the object every time.
+    scene._s6OrbitTargets = orbitTargets;
   },
 
   play() {
     // TIMESTAMP: 3:20
+    // VO: "Today, our digital footprints influence many aspects of our
+    //      lives. Universities may review applicants' online presence.
+    //      Employers often search for candidates..."
     const tl = gsap.timeline({ id: "scene-6" });
+    const scene = qs("#scene-6");
+    const orbitTargets = scene?._s6OrbitTargets || {};
 
-    tl.to("#s6-profile-card", { opacity: 1, y: 0, scale: 1,
-      duration: 0.9, ease: E.back }, 0);
+    // ── Beat 1 (0s): Profile card rises in ──
+    tl.to("#s6-profile", { opacity: 1, y: 0, scale: 1,
+      duration: 0.8, ease: E.back }, 0);
+    tl.to(".profile__avatar-ring", { opacity: 1, scale: 1,
+      duration: 0.6, ease: E.elastic }, 0.3);
+    tl.to(".profile__name",   { opacity: 1, y: 0, duration: 0.4, ease: E.out }, 0.6);
+    tl.to(".profile__handle", { opacity: 1, y: 0, duration: 0.4, ease: E.out }, 0.75);
 
-    tl.to("#s6-magnifier", { opacity: 1, scale: 1, rotation: 0,
-      duration: 0.7, ease: E.elastic }, 0.7);
+    // ── Beat 2 (1.1s): Institution icons orbit outward into position ──
+    // VO: "Universities may review applicants..."
+    Object.entries(orbitTargets).forEach(([sel, pos], i) => {
+      tl.to(sel, {
+        opacity: 1, scale: 1, x: pos.x, y: pos.y,
+        duration: 0.6, ease: E.back,
+      }, 1.1 + i * 0.12);
+    });
 
-    // Magnifier scans across profile
-    tl.to("#s6-magnifier", {
-      x: -80, y: 60, duration: 1.4, ease: "sine.inOut",
-    }, 1.3);
+    // ── Beat 3 (2.0s): Orbit icons gently bob — alive, watching ──
+    tl.to(".orbit-icon", {
+      y: "+=8", duration: 1.8, yoyo: true, repeat: -1,
+      ease: "sine.inOut", stagger: { amount: 0.6 },
+    }, 2.0);
 
-    tl.to("#s6-connect-lines", { opacity: 1,
-      duration: 0.6, ease: E.out }, 1.6);
+    // ── Beat 4 (2.2s): Search bar slides up ──
+    // VO: "...Employers often search for candidates before making
+    //      hiring decisions."
+    tl.to("#s6-search", { opacity: 1, y: 0,
+      duration: 0.6, ease: E.back }, 2.2);
 
-    tl.to(".s6-social", { opacity: 1, y: 0, scale: 1,
-      stagger: 0.15, duration: 0.5, ease: E.back }, 1.9);
+    // ── Beat 5 (2.5s): Cursor blinks while "typing" ──
+    tl.to(".search__cursor", {
+      opacity: 0, duration: 0.4, repeat: 3, yoyo: true, ease: "none",
+    }, 2.5);
 
-    // Magnifier moves to hover over social cards
-    tl.to("#s6-magnifier", {
-      x: -100, y: 140, duration: 1.0, ease: "sine.inOut",
-    }, 2.6);
+    // ── Beat 6 (2.5s): Type the search query via TextPlugin ──
+    tl.to("#s6-search-text", {
+      duration: 1.2,
+      text: { value: "Alex Johnson digital footprint", delimiter: "" },
+      ease: "none",
+    }, 2.5);
 
-    tl.to("#s6-verdict", { opacity: 1, scale: 1,
-      duration: 0.6, ease: E.back }, 3.4);
+    // ── Beat 7 (3.8s): Results drop in — two normal, one flagged ──
+    // VO: "Professional organizations, scholarship committees, and even
+    //      business partners may form impressions based on publicly
+    //      available information."
+    tl.to("#s6-results", { opacity: 1, duration: 0.3 }, 3.8);
+    tl.to(".search-result", {
+      opacity: 1, x: 0,
+      stagger: 0.18, duration: 0.4, ease: E.out,
+    }, 3.9);
 
-    // FIX: replaced drop-shadow filter tween (unreliable cross-browser)
-    // with a safe opacity pulse instead
-    tl.to("#s6-verdict", {
-      opacity: 0.5, duration: 0.4, yoyo: true, repeat: 3, ease: E.inOut,
-    }, 3.8);
-
-    tl.to("#s6-headline", { opacity: 1, y: 0,
-      duration: 0.7, ease: E.out }, 4.2);
+    // ── Beat 8 (4.5s): Flagged result pulses amber warning ──
+    tl.to("#s6-flagged", {
+      backgroundColor: "rgba(212,114,10,0.20)",
+      duration: 0.35, yoyo: true, repeat: 3, ease: E.inOut,
+    }, 4.5);
 
     return tl;
   },
@@ -1521,9 +1663,22 @@ SceneControllers[6] = {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SCENE 7  —  People Grow & Change  (4:00 – 4:25)
+   SCENE 7  —  People Grow & Change  (4:00 – 4:25)   [UPGRADED]
    VO: "This does not mean that every old mistake automatically ruins
-        someone's future..."
+        someone's future. People grow, learn, and change over time.
+        However, what we share online can affect how others perceive
+        our judgment, professionalism, and credibility. Because online
+        content often lacks context, a single post may create an
+        impression that is difficult to change."
+
+   Two-act structure to cover the full VO beat-for-beat:
+     ACT 1 (reassurance) — a three-stop timeline shows a person moving
+       from a flagged "past mistake" through "learning" to a polished,
+       professional "now" — the growth arc draws between them.
+     ACT 2 (the caveat) — three perception badges (Judgment,
+       Professionalism, Credibility) orbit a central eye/impression icon;
+       a "missing context" tag is struck through, then a wax-seal stamp
+       slams down to visualise an impression that's hard to undo.
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[7] = {
 
@@ -1538,76 +1693,188 @@ SceneControllers[7] = {
     el.insertAdjacentHTML("afterbegin", `
       <svg id="s7-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
            width="405" height="720" style="position:absolute;top:0;left:0;pointer-events:none">
+        <defs>
+          <radialGradient id="s7-glow-teal" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="${C.teal}" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="s7-glow-purple" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="${C.purple}" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="s7-stamp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="${C.red}"/>
+            <stop offset="100%" stop-color="${C.purple}"/>
+          </linearGradient>
+        </defs>
 
-        <!-- Timeline arrow -->
-        <!-- NOTE: renamed s7-timeline → s7-timeline-svg to avoid collision with <div id="s7-timeline"> -->
-        <g id="s7-timeline-svg" opacity="0">
-          <line x1="50" y1="360" x2="355" y2="360"
-                stroke="${C.blue}" stroke-width="1.5"
-                stroke-dasharray="6 4" opacity="0.5"/>
-          <polygon points="355,355 368,360 355,365"
-                   fill="${C.blue}" opacity="0.5"/>
+        <!-- ── Ambient backdrop ── -->
+        <ellipse cx="120" cy="330" rx="150" ry="150" fill="url(#s7-glow-purple)" opacity="0.5"/>
+        <ellipse cx="300" cy="290" rx="150" ry="150" fill="url(#s7-glow-teal)"   opacity="0.5"/>
+
+        <!-- Eyebrow label -->
+        <g id="s7-eyebrow" opacity="0" transform="translate(202,118)">
+          <text font-family="Inter,sans-serif" font-size="9" letter-spacing="3"
+                fill="${C.muted}" text-anchor="middle">GROWTH &amp; CONTEXT</text>
         </g>
 
-        <!-- Past self (left, muted) -->
-        <!-- NOTE: renamed s7-past → s7-past-svg to avoid collision with <div id="s7-past"> in index.html -->
-        <g id="s7-past-svg" opacity="0" transform="translate(100,310)">
-          <circle cx="0" cy="-34" r="18" fill="${C.muted}" opacity="0.6"/>
-          <rect x="-14" y="-14" width="28" height="38" rx="8"
-                fill="${C.muted}" opacity="0.5"/>
-          <line x1="-24" y1="-58" x2="24" y2="-6"
-                stroke="${C.red}" stroke-width="2.5"
-                stroke-linecap="round" opacity="0.7"/>
-          <line x1="24" y1="-58" x2="-24" y2="-6"
-                stroke="${C.red}" stroke-width="2.5"
-                stroke-linecap="round" opacity="0.7"/>
-          <text y="46" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.muted}" text-anchor="middle">Then</text>
+        <!-- ════════ ACT 1 — Growth timeline ════════ -->
+        <g id="s7-act1">
+
+          <!-- Timeline track -->
+          <g id="s7-timeline-svg" opacity="0">
+            <line x1="55" y1="330" x2="350" y2="330"
+                  stroke="${C.blue}" stroke-width="1.5"
+                  stroke-dasharray="6 4" opacity="0.5"/>
+            <polygon points="350,325 363,330 350,335" fill="${C.blue}" opacity="0.5"/>
+          </g>
+
+          <!-- Growth arc (drawn with stroke-dashoffset trick) -->
+          <path id="s7-growth-arc" d="M 95,330 Q 202,250 308,290"
+                fill="none" stroke="${C.teal}" stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-dasharray="260" stroke-dashoffset="260" opacity="0.85"/>
+
+          <!-- Past self (left, muted, flagged) -->
+          <!-- NOTE: renamed s7-past → s7-past-svg to avoid collision with <div id="s7-past"> in index.html -->
+          <g id="s7-past-svg" opacity="0" transform="translate(95,330)">
+            <circle cx="0" cy="-30" r="34" fill="${C.muted}" opacity="0.12"/>
+            <circle cx="0" cy="-38" r="14" fill="${C.muted}" opacity="0.65"/>
+            <path d="M -20,-2 Q -20,-22 0,-22 Q 20,-22 20,-2 L 20,8 L -20,8 Z"
+                  fill="${C.muted}" opacity="0.55"/>
+            <!-- flag badge -->
+            <circle cx="16" cy="-52" r="11" fill="${C.red}" opacity="0.9"/>
+            <text x="16" y="-48.5" font-family="Inter,sans-serif" font-size="11"
+                  fill="${C.white}" text-anchor="middle" font-weight="700">!</text>
+            <text y="34" font-family="Inter,sans-serif" font-size="9"
+                  fill="${C.muted}" text-anchor="middle" font-weight="600">Then</text>
+            <text y="46" font-family="Inter,sans-serif" font-size="7.5"
+                  fill="${C.red}" text-anchor="middle" opacity="0.85">an old mistake</text>
+          </g>
+
+          <!-- Midpoint — learning / in progress -->
+          <g id="s7-mid-svg" opacity="0" transform="translate(202,255)">
+            <circle cx="0" cy="0" r="9" fill="${C.amber}" opacity="0.85"/>
+            <circle cx="0" cy="0" r="16" fill="none" stroke="${C.amber}"
+                    stroke-width="1.2" opacity="0.4"/>
+            <text y="-22" font-family="Inter,sans-serif" font-size="7.5"
+                  fill="${C.amber}" text-anchor="middle" letter-spacing="0.5">
+              learning&#8201;&#183;&#8201;changing
+            </text>
+          </g>
+
+          <!-- Present self (right, taller, polished, glowing) -->
+          <!-- NOTE: renamed s7-present → s7-present-svg to avoid collision with <div id="s7-present"> in index.html -->
+          <g id="s7-present-svg" opacity="0" transform="translate(308,290)">
+            <circle cx="0" cy="-46" r="40" fill="${C.teal}" opacity="0.14"/>
+            <circle cx="0" cy="-58" r="16" fill="${C.teal}" opacity="0.85"/>
+            <!-- tailored shoulders / blazer silhouette -->
+            <path d="M -24,-6 Q -24,-30 0,-30 Q 24,-30 24,-6 L 24,18 L -24,18 Z"
+                  fill="${C.teal}" opacity="0.75"/>
+            <path d="M -6,-28 L 0,-12 L 6,-28 Z" fill="#06060F" opacity="0.5"/>
+            <circle cx="0" cy="-58" r="26"
+                    fill="none" stroke="${C.teal}" stroke-width="1.5" opacity="0.35"/>
+            <text y="34" font-family="Inter,sans-serif" font-size="9"
+                  fill="${C.teal}" text-anchor="middle" font-weight="600">Now</text>
+          </g>
+
+          <!-- Checkmark of progress -->
+          <g id="s7-check" opacity="0" transform="translate(338,222)">
+            <circle cx="0" cy="0" r="16" fill="${C.teal}" opacity="0.2"
+                    stroke="${C.teal}" stroke-width="2"/>
+            <polyline points="-7,1 -1,7 9,-6"
+                      fill="none" stroke="${C.teal}" stroke-width="2.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+
+          <!-- Sparkle host for growth-arc completion burst -->
+          <g id="s7-sparkles" transform="translate(202,255)"/>
+
+          <!-- Caption 1 -->
+          <g id="s7-caption-1" opacity="0" transform="translate(202,430)">
+            <text font-family="Inter,sans-serif" font-size="11.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="500">
+              People grow, learn, and change
+            </text>
+            <text y="18" font-family="Inter,sans-serif" font-size="11.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="500">
+              over time.
+            </text>
+          </g>
         </g>
 
-        <!-- Growth arc (drawn with stroke-dashoffset trick) -->
-        <path id="s7-growth-arc" d="M 130,310 Q 202,240 274,280"
-              fill="none" stroke="${C.teal}" stroke-width="2"
-              stroke-dasharray="200" stroke-dashoffset="200" opacity="0.7"/>
+        <!-- ════════ ACT 2 — Perception &amp; missing context ════════ -->
+        <g id="s7-act2" opacity="0">
 
-        <!-- Present self (right, taller, glowing) -->
-        <!-- NOTE: renamed s7-present → s7-present-svg to avoid collision with <div id="s7-present"> in index.html -->
-        <g id="s7-present-svg" opacity="0" transform="translate(302,270)">
-          <circle cx="0" cy="-42" r="24" fill="${C.teal}" opacity="0.8"/>
-          <rect x="-18" y="-16" width="36" height="50" rx="10"
-                fill="${C.teal}" opacity="0.7"/>
-          <circle cx="0" cy="-42" r="32"
-                  fill="none" stroke="${C.teal}" stroke-width="1.5" opacity="0.3"/>
-          <text y="60" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.teal}" text-anchor="middle">Now</text>
+          <!-- Central "impression" eye icon -->
+          <g id="s7-impression" transform="translate(202,300)">
+            <circle cx="0" cy="0" r="46" fill="none" stroke="${C.purple}"
+                    stroke-width="1.2" opacity="0.35" stroke-dasharray="3 5"/>
+            <path d="M -28,0 Q 0,-22 28,0 Q 0,22 -28,0 Z"
+                  fill="${C.purple}" opacity="0.18" stroke="${C.purple}" stroke-width="1.4"/>
+            <circle cx="0" cy="0" r="10" fill="${C.purple}" opacity="0.85"/>
+            <circle cx="0" cy="0" r="4"  fill="#06060F"/>
+          </g>
+
+          <!-- Perception badges orbiting the eye -->
+          <g class="s7-badge" id="s7-badge-judgment" opacity="0" transform="translate(96,230)">
+            <rect x="-46" y="-15" width="92" height="30" rx="15"
+                  fill="#12121E" stroke="${C.blue}" stroke-width="1"/>
+            <text font-family="Inter,sans-serif" font-size="9.5" fill="${C.white}"
+                  text-anchor="middle" dy="3.5" font-weight="600">Judgment</text>
+          </g>
+          <g class="s7-badge" id="s7-badge-professionalism" opacity="0" transform="translate(308,228)">
+            <rect x="-66" y="-15" width="132" height="30" rx="15"
+                  fill="#12121E" stroke="${C.amber}" stroke-width="1"/>
+            <text font-family="Inter,sans-serif" font-size="9.5" fill="${C.white}"
+                  text-anchor="middle" dy="3.5" font-weight="600">Professionalism</text>
+          </g>
+          <g class="s7-badge" id="s7-badge-credibility" opacity="0" transform="translate(202,400)">
+            <rect x="-56" y="-15" width="112" height="30" rx="15"
+                  fill="#12121E" stroke="${C.red}" stroke-width="1"/>
+            <text font-family="Inter,sans-serif" font-size="9.5" fill="${C.white}"
+                  text-anchor="middle" dy="3.5" font-weight="600">Credibility</text>
+          </g>
+
+          <!-- "Missing context" tag, struck through -->
+          <g id="s7-context-tag" opacity="0" transform="translate(202,470)">
+            <rect x="-92" y="-17" width="184" height="34" rx="17"
+                  fill="#1A1020" stroke="${C.muted}" stroke-width="1"/>
+            <text font-family="Inter,sans-serif" font-size="9.5" fill="${C.muted}"
+                  text-anchor="middle" dy="3.5">Online content lacks context</text>
+            <line id="s7-context-strike" x1="-86" y1="0" x2="-86" y2="0"
+                  stroke="${C.red}" stroke-width="1.6" stroke-linecap="round"/>
+          </g>
+
+          <!-- Wax-seal stamp: a single post leaves a lasting impression -->
+          <g id="s7-stamp" opacity="0" transform="translate(202,300) scale(2.2)">
+            <circle cx="0" cy="0" r="30" fill="url(#s7-stamp-grad)" opacity="0.92"/>
+            <circle cx="0" cy="0" r="30" fill="none" stroke="${C.white}"
+                    stroke-width="1" opacity="0.5"/>
+            <text y="4" font-family="'Space Grotesk',sans-serif" font-size="9.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="800"
+                  letter-spacing="0.5">LASTING</text>
+          </g>
+          <g id="s7-stamp-ring" opacity="0" transform="translate(202,300)">
+            <circle cx="0" cy="0" r="30" fill="none" stroke="${C.red}"
+                    stroke-width="1.5" opacity="0.6"/>
+          </g>
+
+          <!-- Caption 2 -->
+          <g id="s7-caption-2" opacity="0" transform="translate(202,560)">
+            <text font-family="Inter,sans-serif" font-size="11"
+                  fill="${C.white}" text-anchor="middle" font-weight="500">
+              A single post can shape an impression
+            </text>
+            <text y="17" font-family="Inter,sans-serif" font-size="11"
+                  fill="${C.white}" text-anchor="middle" font-weight="500">
+              that's difficult to change.
+            </text>
+          </g>
         </g>
 
-        <!-- Context bubble -->
-        <g id="s7-context-bubble" opacity="0" transform="translate(202,470)">
-          <rect x="-130" y="-28" width="260" height="56" rx="14"
-                fill="#12121E" stroke="${C.purple}" stroke-width="1"/>
-          <text font-family="Inter,sans-serif" font-size="9.5"
-                fill="${C.white}" text-anchor="middle" dy="-4">
-            We all make mistakes.
-          </text>
-          <text y="16" font-family="Inter,sans-serif" font-size="9.5"
-                fill="${C.white}" text-anchor="middle" dy="-4">
-            Context and growth matter.
-          </text>
-        </g>
-
-        <!-- Checkmark of progress -->
-        <g id="s7-check" opacity="0" transform="translate(302,205)">
-          <circle cx="0" cy="0" r="22"
-                  fill="${C.teal}" opacity="0.2"
-                  stroke="${C.teal}" stroke-width="2"/>
-          <polyline points="-10,2 -2,10 12,-8"
-                    fill="none" stroke="${C.teal}" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-        </g>
-
-        <!-- Headline -->
-        <g id="s7-headline" opacity="0" transform="translate(202,610)">
+        <!-- Headline (persists across both acts) -->
+        <g id="s7-headline" opacity="0" transform="translate(202,650)">
           <text font-family="'Space Grotesk',sans-serif" font-size="15"
                 fill="${C.white}" text-anchor="middle" font-weight="700">
             People Grow &amp; Change
@@ -1616,36 +1883,103 @@ SceneControllers[7] = {
 
       </svg>`);
 
-    gsap.set(["#s7-timeline-svg", "#s7-past-svg", "#s7-context-bubble",
-              "#s7-headline"], { opacity: 0 });
-    gsap.set("#s7-growth-arc",  { strokeDashoffset: 200, opacity: 0.7 });
+    gsap.set(["#s7-eyebrow", "#s7-timeline-svg", "#s7-past-svg", "#s7-mid-svg",
+              "#s7-caption-1", "#s7-headline"], { opacity: 0 });
+    gsap.set("#s7-growth-arc",  { strokeDashoffset: 260, opacity: 0.85 });
     gsap.set("#s7-present-svg", { opacity: 0, scale: 0.7,
       transformOrigin: "center center" });
     gsap.set("#s7-check",       { opacity: 0, scale: 0.4,
       transformOrigin: "center center" });
+
+    gsap.set("#s7-act2", { opacity: 0 });
+    gsap.set(".s7-badge", { opacity: 0, scale: 0.6,
+      transformOrigin: "center center" });
+    gsap.set("#s7-context-tag",   { opacity: 0, y: 10 });
+    gsap.set("#s7-context-strike",{ attr: { x2: -86 } });
+    gsap.set("#s7-stamp",      { opacity: 0, scale: 3.4,
+      transformOrigin: "center center" });
+    gsap.set("#s7-stamp-ring", { opacity: 0, scale: 0.6,
+      transformOrigin: "center center" });
+    gsap.set("#s7-caption-2", { opacity: 0 });
   },
 
   play() {
     // TIMESTAMP: 4:00
     const tl = gsap.timeline({ id: "scene-7" });
 
-    tl.to("#s7-timeline-svg", { opacity: 1, duration: 0.6, ease: E.out }, 0);
-    tl.to("#s7-past-svg",     { opacity: 1, duration: 0.7, ease: E.out }, 0.4);
+    // ── ACT 1 (0s – 3.4s): reassurance — people grow, learn, change ──
+    tl.to("#s7-eyebrow", { opacity: 1, duration: 0.5, ease: E.out }, 0);
+    tl.to("#s7-timeline-svg", { opacity: 1, duration: 0.6, ease: E.out }, 0.15);
+    tl.to("#s7-past-svg",     { opacity: 1, duration: 0.7, ease: E.out }, 0.45);
 
-    // Growth arc draws
+    // Growth arc draws, passing through the "learning" midpoint
     tl.to("#s7-growth-arc", { strokeDashoffset: 0,
-      duration: 1.0, ease: E.out }, 0.9);
+      duration: 1.1, ease: E.out }, 0.95);
+    tl.to("#s7-mid-svg", { opacity: 1, duration: 0.4, ease: E.out }, 1.35);
+    tl.to("#s7-mid-svg", {
+      scale: 1.3, duration: 0.5, yoyo: true, repeat: 1, ease: "sine.inOut",
+      transformOrigin: "center center",
+    }, 1.5);
 
     tl.to("#s7-present-svg", { opacity: 1, scale: 1,
-      duration: 0.8, ease: E.back }, 1.7);
+      duration: 0.8, ease: E.back }, 1.85);
 
     tl.to("#s7-check", { opacity: 1, scale: 1,
-      duration: 0.5, ease: E.elastic }, 2.3);
+      duration: 0.5, ease: E.elastic }, 2.4);
 
-    tl.to("#s7-context-bubble", { opacity: 1,
-      duration: 0.7, ease: E.out }, 2.8);
+    tl.add(() => {
+      const host = qs("#s7-sparkles");
+      if (host && window.AnimHelpers?.createSparkles) {
+        AnimHelpers.createSparkles(host, 10, C.teal);
+      }
+    }, 1.4);
 
-    tl.to("#s7-headline", { opacity: 1, duration: 0.7, ease: E.out }, 3.4);
+    tl.to("#s7-caption-1", { opacity: 1, duration: 0.6, ease: E.out }, 2.7);
+
+    tl.to("#s7-headline", { opacity: 1, duration: 0.6, ease: E.out }, 3.0);
+
+    // ── Transition: Act 1 fades, Act 2 (the caveat) rises ──
+    tl.to("#s7-act1", { opacity: 0, scale: 0.94, transformOrigin: "center center",
+      duration: 0.6, ease: "power2.in" }, 3.7);
+    tl.to("#s7-caption-1", { opacity: 0, duration: 0.3 }, 3.7);
+
+    tl.to("#s7-act2", { opacity: 1, duration: 0.4, ease: E.out }, 4.15);
+
+    // ── ACT 2 (4.15s – 8.0s): judgment, professionalism, credibility ──
+    tl.fromTo("#s7-impression", { scale: 0.5, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.6, ease: E.back,
+        transformOrigin: "center center" }, 4.15);
+
+    tl.to("#s7-badge-judgment", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.back }, 4.6);
+    tl.to("#s7-badge-professionalism", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.back }, 4.78);
+    tl.to("#s7-badge-credibility", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.back }, 4.96);
+
+    // Badges drift gently — perception keeps watching
+    tl.to(".s7-badge", {
+      y: "+=5", duration: 1.6, yoyo: true, repeat: -1,
+      ease: "sine.inOut", stagger: { amount: 0.4, from: "random" },
+    }, 5.3);
+
+    // "Online content lacks context" rises, then gets struck through
+    tl.to("#s7-context-tag", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 5.5);
+    tl.to("#s7-context-strike", { attr: { x2: 86 },
+      duration: 0.5, ease: "power2.out" }, 6.05);
+
+    // Wax-seal stamp slams down — "a lasting impression"
+    tl.to("#s7-stamp", { opacity: 1, scale: 1,
+      duration: 0.35, ease: "power4.in" }, 6.55);
+    tl.to("#s7-stamp", {
+      scale: 1.08, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut",
+      transformOrigin: "center center",
+    }, 6.9);
+    tl.to("#s7-stamp-ring", { opacity: 0.7, scale: 1.8,
+      duration: 0.6, ease: "power2.out" }, 6.85);
+    tl.to("#s7-stamp-ring", { opacity: 0, duration: 0.4 }, 7.3);
+
+    tl.to("#s7-caption-2", { opacity: 1, duration: 0.6, ease: E.out }, 7.1);
 
     return tl;
   },
@@ -1671,6 +2005,21 @@ SceneControllers[8] = {
       <svg id="s8-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
            width="405" height="720" style="position:absolute;top:0;left:0;pointer-events:none">
 
+        <!-- Reframe line: VO opens by flipping the narrative from negative to positive -->
+        <g id="s8-subtitle" opacity="0" transform="translate(202,108)">
+          <text font-family="'Space Grotesk',sans-serif" font-size="13"
+                fill="${C.muted}" text-anchor="middle" font-weight="700"
+                letter-spacing="0.3">NOT JUST MISTAKES.</text>
+          <text y="20" font-family="'Space Grotesk',sans-serif" font-size="13"
+                fill="${C.teal}" text-anchor="middle" font-weight="700"
+                letter-spacing="0.3">A POWERFUL TOOL.</text>
+        </g>
+
+        <!-- Identity pulse — expands outward from the badge when VO says
+             "...can strengthen a person's online identity." -->
+        <circle id="s8-identity-pulse" cx="202" cy="220" r="52"
+                fill="none" stroke="${C.teal}" stroke-width="2" opacity="0"/>
+
         <!-- Central + badge -->
         <g id="s8-plus-badge" transform="translate(202,220)">
           <circle cx="0" cy="0" r="52"
@@ -1686,14 +2035,16 @@ SceneControllers[8] = {
                  fill="none" stroke="${C.teal}" stroke-width="0.8"
                  stroke-dasharray="5 5" opacity="0"/>
 
-        <!-- Cards at orbit positions -->
+        <!-- Cards at orbit positions — labels match the VO's own list:
+             "achievements, volunteering experiences, creative work, research,
+              professional accomplishments, or thoughtful discussions" -->
         ${[
-          { angle: 270, label: "Portfolio",  icon: "💼", color: C.blue   },
-          { angle: 330, label: "Creativity", icon: "🎨", color: C.purple },
-          { angle: 30,  label: "Advocacy",   icon: "📣", color: C.amber  },
-          { angle: 90,  label: "Community",  icon: "🤝", color: C.teal   },
-          { angle: 150, label: "Learning",   icon: "📚", color: C.blue   },
-          { angle: 210, label: "Networking", icon: "🌐", color: C.purple },
+          { angle: 270, label: "Achievements",     icon: "🏆", color: C.amber  },
+          { angle: 330, label: "Volunteering",     icon: "🤲", color: C.teal   },
+          { angle: 30,  label: "Creative Work",    icon: "🎨", color: C.purple },
+          { angle: 90,  label: "Research",         icon: "🔬", color: C.blue   },
+          { angle: 150, label: "Accomplishments",  icon: "💼", color: C.amber  },
+          { angle: 210, label: "Discussions",      icon: "💬", color: C.purple },
         ].map((card, i) => {
           const rad = (card.angle * Math.PI) / 180;
           const cx  = 202 + Math.cos(rad) * 130;
@@ -1709,6 +2060,28 @@ SceneControllers[8] = {
                     font-weight="600">${card.label}</text>
             </g>`;
         }).join("")}
+
+        <!-- Outcome chips — "...can open doors to new opportunities,
+             collaborations, and career growth." -->
+        <g id="s8-outcomes" transform="translate(202,440)">
+          <line x1="0" y1="-104" x2="0" y2="-34" stroke="${C.teal}"
+                stroke-width="0.8" stroke-dasharray="3 4" opacity="0.3"/>
+          <g class="s8-outcome" id="s8-outcome-0" opacity="0" transform="translate(-108,0)">
+            <text font-size="19" text-anchor="middle">✨</text>
+            <text y="21" font-family="Inter,sans-serif" font-size="8.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="600">Opportunities</text>
+          </g>
+          <g class="s8-outcome" id="s8-outcome-1" opacity="0" transform="translate(0,0)">
+            <text font-size="19" text-anchor="middle">🤝</text>
+            <text y="21" font-family="Inter,sans-serif" font-size="8.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="600">Collaborations</text>
+          </g>
+          <g class="s8-outcome" id="s8-outcome-2" opacity="0" transform="translate(108,0)">
+            <text font-size="19" text-anchor="middle">📈</text>
+            <text y="21" font-family="Inter,sans-serif" font-size="8.5"
+                  fill="${C.white}" text-anchor="middle" font-weight="600">Career Growth</text>
+          </g>
+        </g>
 
         <!-- Headline -->
         <g id="s8-headline" opacity="0" transform="translate(202,580)">
@@ -1727,53 +2100,87 @@ SceneControllers[8] = {
 
       </svg>`);
 
+    gsap.set("#s8-subtitle",       { opacity: 0, y: 8 });
+    gsap.set("#s8-identity-pulse", { opacity: 0, scale: 1,
+      transformOrigin: "center center" });
     gsap.set("#s8-plus-badge", { opacity: 0, scale: 0.4, rotation: -45,
       transformOrigin: "center center" });
     gsap.set(".s8-card",       { opacity: 0, scale: 0.5,
       transformOrigin: "center center" });
     gsap.set("#s8-orbit",      { opacity: 0 });
+    gsap.set(".s8-outcome",    { opacity: 0, y: 10 });
     gsap.set("#s8-headline",   { opacity: 0, y: 14 });
   },
 
   play() {
     // TIMESTAMP: 4:25
+    // VO: "Digital footprints are not only about negative consequences.
+    //      They can also become powerful tools for building a positive
+    //      reputation. Sharing meaningful achievements, volunteering
+    //      experiences, creative work, research, professional accomplishments,
+    //      or thoughtful discussions can strengthen a person's online identity.
+    //      A positive digital footprint can open doors to new opportunities,
+    //      collaborations, and career growth."
     const tl = gsap.timeline({ id: "scene-8" });
 
-    // Plus badge spins in
+    // 0:00 — Reframe: "not only about negative consequences..."
     tl.to("#s8-plus-badge", { opacity: 1, scale: 1, rotation: 0,
       duration: 0.8, ease: E.back }, 0);
+    tl.to("#s8-subtitle", { opacity: 1, y: 0,
+      duration: 0.6, ease: E.out }, 0.5);
 
-    // Orbit ring fades in
-    tl.to("#s8-orbit", { opacity: 0.4, duration: 0.5, ease: E.out }, 0.6);
+    // ~2.0s — "...powerful tools for building a positive reputation."
+    // Subtitle clears the stage and the orbit lights up to host the cards.
+    tl.to("#s8-subtitle", { opacity: 0, y: -8,
+      duration: 0.5, ease: E.inOut }, 2.4);
+    tl.to("#s8-orbit", { opacity: 0.4, duration: 0.6, ease: E.out }, 2.6);
 
-    // Cards bloom outward via helper or fallback
-    if (window.AnimHelpers?.bloomCards) {
+    // ~3.4s–16.5s — "Sharing meaningful achievements, volunteering experiences,
+    // creative work, research, professional accomplishments, or thoughtful
+    // discussions..." — each card pops in roughly as its word is spoken.
+    const cardTimes = [3.6, 5.6, 7.6, 9.6, 11.6, 13.6];
+    qsa(".s8-card").forEach((card, i) => {
+      const t = cardTimes[i] ?? (3.6 + i * 2.0);
+      tl.to(card, { opacity: 1, scale: 1.15, duration: 0.35, ease: E.back }, t);
+      tl.to(card, { scale: 1, duration: 0.3, ease: E.out }, t + 0.32);
+      // a little burst of sparkle right as each one lands
       tl.add(() => {
-        AnimHelpers.bloomCards(qsa(".s8-card"), 202, 220, 130);
-      }, 0.8);
-    } else {
-      tl.to(".s8-card", { opacity: 1, scale: 1,
-        stagger: { amount: 0.7 },
-        duration: 0.5, ease: E.elastic }, 0.8);
-    }
+        const host = qs("#s8-sparkle-host");
+        if (host && window.AnimHelpers?.createSparkles) {
+          AnimHelpers.createSparkles(host, 4, C.teal);
+        }
+      }, t);
+    });
 
-    // FIX: removed broken orbit rotation (pixel-coord anchor breaks SVG
-    // coordinate space). Cards stay in place and float gently instead.
+    // Gentle perpetual float once all six have arrived
     tl.to(".s8-card", {
       y: -5, duration: 2.0, yoyo: true, repeat: -1,
       ease: "sine.inOut", stagger: { amount: 0.8 },
-    }, 2.2);
+    }, 15.0);
 
-    // Sparkles
+    // ~16.8s–19.0s — "...can strengthen a person's online identity."
+    // A ring of light pulses outward from the badge.
+    tl.to("#s8-orbit", { opacity: 0.85, duration: 0.4, ease: E.out }, 16.8);
+    tl.to("#s8-orbit", { opacity: 0.4, duration: 1.0, ease: E.inOut }, 17.4);
+    tl.fromTo("#s8-identity-pulse",
+      { opacity: 0.85, scale: 1 },
+      { opacity: 0, scale: 1.7, duration: 1.4, ease: "power2.out" }, 16.8);
     tl.add(() => {
       const host = qs("#s8-sparkle-host");
       if (host && window.AnimHelpers?.createSparkles) {
-        AnimHelpers.createSparkles(host, 12, C.teal);
+        AnimHelpers.createSparkles(host, 14, C.teal);
       }
-    }, 1.8);
+    }, 16.9);
 
+    // ~19.0s–24.0s — "...can open doors to new opportunities, collaborations,
+    // and career growth." Outcome chips rise in beneath the cards.
+    tl.to("#s8-outcome-0", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 19.0);
+    tl.to("#s8-outcome-1", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 20.6);
+    tl.to("#s8-outcome-2", { opacity: 1, y: 0, duration: 0.6, ease: E.out }, 22.2);
+
+    // Headline lands as the thought resolves
     tl.to("#s8-headline", { opacity: 1, y: 0,
-      duration: 0.8, ease: E.out }, 2.4);
+      duration: 0.8, ease: E.out }, 23.6);
 
     return tl;
   },
@@ -1783,38 +2190,65 @@ SceneControllers[8] = {
 /* ═══════════════════════════════════════════════════════════════════════════════
    SCENE 9  —  Think Before You Post  (5:00 – 5:30)
    VO: "Before sharing something online, it is worth asking a few simple
-        questions..."
+        questions. Would I be comfortable if my family saw this? Would I be
+        comfortable if a future employer saw this? Would I still be proud of
+        this post five years from now? If the answer is no, it may be worth
+        reconsidering before pressing the 'Post' button."
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[9] = {
 
   init() {
-    // Target: #s9-phone  (class="scene__phone-ui" id="s9-phone" in index.html)
-    const el = qs("#s9-phone");
-    if (!el) { console.warn("[Scene 9] #s9-phone not found"); return; }
+    // FIX: previously injected a 405×720 SVG into #s9-phone, which is a
+    // 200px-wide .scene__phone-ui div — so everything outside 200px got
+    // clipped. Questions at x=202 were cut in half. Now we inject directly
+    // into #scene-9 (the full-canvas section) and hide the legacy phone div.
+    const scene = qs("#scene-9");
+    if (!scene) { console.warn("[Scene 9] #scene-9 not found"); return; }
 
-    el.innerHTML = `
+    const prev = scene.querySelector("#s9-svg");
+    if (prev) prev.remove();
+
+    // Hide the legacy phone div so it doesn't sit on top of our SVG
+    const legacyPhone = scene.querySelector("#s9-phone");
+    if (legacyPhone) legacyPhone.style.display = "none";
+    const legacyQ = scene.querySelector("#s9-questions");
+    if (legacyQ) legacyQ.style.display = "none";
+    const legacyR = scene.querySelector("#s9-reconsider");
+    if (legacyR) legacyR.style.display = "none";
+
+    scene.insertAdjacentHTML("afterbegin", `
       <svg id="s9-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
            width="405" height="720">
+        <defs>
+          <filter id="s9-soft-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
 
-        <!-- Phone with compose screen -->
-        <!-- NOTE: renamed s9-phone → s9-phone-body to avoid ID collision with host <div id="s9-phone"> -->
-        <g id="s9-phone-body" transform="translate(202,210)">
-          <rect x="-80" y="-130" width="160" height="260" rx="18"
-                fill="#0E0E1C" stroke="${C.blue}" stroke-width="1.5"/>
-          <rect x="-66" y="-112" width="132" height="140" rx="8"
-                fill="#12121E"/>
-          <text x="-56" y="-90" font-family="Inter,sans-serif" font-size="9"
-                fill="${C.muted}">What's on your mind?</text>
-          <line id="s9-cursor" x1="-56" y1="-74" x2="-56" y2="-62"
-                stroke="${C.blue}" stroke-width="2"
-                stroke-linecap="round" opacity="0.9"/>
-          <rect x="28" y="88" width="50" height="22" rx="11"
-                fill="${C.blue}" opacity="0.85"/>
-          <text x="53" y="104" font-family="Inter,sans-serif" font-size="9"
-                fill="white" text-anchor="middle" font-weight="600">POST</text>
+        <!-- Phone with compose screen — wrapper pattern -->
+        <g transform="translate(202,210)">
+          <g id="s9-phone-body">
+            <rect x="-80" y="-130" width="160" height="260" rx="18"
+                  fill="#0E0E1C" stroke="${C.blue}" stroke-width="1.5"/>
+            <rect x="-66" y="-112" width="132" height="140" rx="8"
+                  fill="#12121E"/>
+            <text id="s9-draft-text" x="-56" y="-90" font-family="Inter,sans-serif"
+                  font-size="9" fill="${C.muted}"></text>
+            <line id="s9-cursor" x1="-56" y1="-104" x2="-56" y2="-92"
+                  stroke="${C.blue}" stroke-width="2"
+                  stroke-linecap="round" opacity="0.9"/>
+            <rect id="s9-post-btn-glow" x="22" y="82" width="62" height="34" rx="17"
+                  fill="${C.amber}" opacity="0" filter="url(#s9-soft-glow)"/>
+            <rect id="s9-post-btn" x="28" y="88" width="50" height="22" rx="11"
+                  fill="${C.blue}" opacity="0.85"/>
+            <text x="53" y="104" font-family="Inter,sans-serif" font-size="9"
+                  fill="white" text-anchor="middle" font-weight="600">POST</text>
+          </g>
         </g>
 
-        <!-- Pause hand overlay -->
+        <!-- Pause hand — interrupts the typing first ("...worth asking a
+             few simple questions") -->
         <g id="s9-pause-hand" transform="translate(202,210)">
           <circle cx="0" cy="0" r="44"
                   fill="${C.amber}" opacity="0.15"
@@ -1822,20 +2256,48 @@ SceneControllers[9] = {
           <text font-size="36" text-anchor="middle" dominant-baseline="middle">✋</text>
         </g>
 
-        <!-- Three question cards -->
+        <!-- Second hand — hesitates right over the Post button
+             ("...it may be worth reconsidering before pressing 'Post'") -->
+        <g id="s9-pause-hand-2" transform="translate(253,298)">
+          <circle cx="0" cy="0" r="26"
+                  fill="${C.amber}" opacity="0.18"
+                  stroke="${C.amber}" stroke-width="1.5"/>
+          <text font-size="22" text-anchor="middle" dominant-baseline="middle">✋</text>
+        </g>
+
+        <!-- "Reconsider?" callout — wrapper pattern -->
+        <g transform="translate(202,355)">
+          <g id="s9-reconsider-label">
+            <text font-family="'Space Grotesk',sans-serif" font-size="13"
+                  fill="${C.amber}" text-anchor="middle" font-weight="700"
+                  letter-spacing="0.5">RECONSIDER?</text>
+          </g>
+        </g>
+
+        <!-- "Ask yourself" header above the three questions -->
+        <g id="s9-ask-label" transform="translate(202,348)">
+          <text font-family="Inter,sans-serif" font-size="10"
+                fill="${C.muted}" text-anchor="middle" font-weight="600"
+                letter-spacing="2">ASK YOURSELF</text>
+        </g>
+
+        <!-- Three question cards — wrapper pattern -->
         ${[
-          { y: 385, q: "Is this kind?",             color: C.teal  },
-          { y: 455, q: "Would I be proud of this?", color: C.blue  },
-          { y: 525, q: "Could this hurt someone?",  color: C.amber },
+          { y: 385, q: "Would my family see this and be okay with it?",     color: C.teal  },
+          { y: 455, q: "Would a future employer see this the same way?",    color: C.blue  },
+          { y: 525, q: "Will I still be proud of this five years from now?",color: C.amber },
         ].map((item, i) => `
-          <g class="s9-question" id="s9-q-${i}"
-             opacity="0" transform="translate(202,${item.y})">
-            <rect x="-150" y="-20" width="300" height="40" rx="10"
-                  fill="#0E0E1C" stroke="${item.color}" stroke-width="1.2"/>
-            <text x="-134" y="5" font-family="Inter,sans-serif" font-size="10"
-                  fill="${item.color}" font-weight="600">${i + 1}.</text>
-            <text x="-118" y="5" font-family="Inter,sans-serif" font-size="10"
-                  fill="${C.white}">${item.q}</text>
+          <g transform="translate(202,${item.y})">
+            <g class="s9-question" id="s9-q-${i}" opacity="0">
+              <rect x="-150" y="-22" width="300" height="44" rx="10"
+                    fill="#0E0E1C" stroke="${item.color}" stroke-width="1.2"/>
+              <circle cx="-130" cy="0" r="9" fill="none"
+                      stroke="${item.color}" stroke-width="1.2"/>
+              <text x="-130" y="3.5" font-family="Inter,sans-serif" font-size="9.5"
+                    fill="${item.color}" text-anchor="middle" font-weight="700">?</text>
+              <text x="-112" y="4" font-family="Inter,sans-serif" font-size="9.5"
+                    fill="${C.white}">${item.q}</text>
+            </g>
           </g>`).join("")}
 
         <!-- THINK stamp -->
@@ -1845,13 +2307,19 @@ SceneControllers[9] = {
                 letter-spacing="6" opacity="0.85">THINK</text>
         </g>
 
-      </svg>`;
+      </svg>`);
 
-    gsap.set("#s9-phone-body",  { opacity: 0, y: 30 });
-    gsap.set("#s9-pause-hand",  { opacity: 0, scale: 0.5,
+    gsap.set("#s9-phone-body",       { opacity: 0, y: 30 });
+    gsap.set("#s9-draft-text",       { opacity: 1 });
+    gsap.set("#s9-post-btn-glow",    { opacity: 0 });
+    gsap.set("#s9-pause-hand",       { opacity: 0, scale: 0.5,
       transformOrigin: "center center" });
-    gsap.set(".s9-question",    { opacity: 0, x: -30 });
-    gsap.set("#s9-think-stamp", { opacity: 0, scale: 1.5,
+    gsap.set("#s9-pause-hand-2",     { opacity: 0, scale: 0.4,
+      transformOrigin: "center center" });
+    gsap.set("#s9-reconsider-label", { opacity: 0, y: 8 });
+    gsap.set("#s9-ask-label",        { opacity: 0 });
+    gsap.set(".s9-question",         { opacity: 0, x: -30 });
+    gsap.set("#s9-think-stamp",      { opacity: 0, scale: 1.5,
       transformOrigin: "center center" });
   },
 
@@ -1859,31 +2327,71 @@ SceneControllers[9] = {
     // TIMESTAMP: 5:00
     const tl = gsap.timeline({ id: "scene-9" });
 
+    // t=0.0 — Phone rises in, blank compose box waiting
     tl.to("#s9-phone-body", { opacity: 1, y: 0,
       duration: 0.8, ease: E.back }, 0);
 
-    // Cursor blinks
+    // ~0.9s–2.2s — An impulsive draft gets typed out live...
     tl.to("#s9-cursor", {
-      opacity: 0, duration: 0.4, yoyo: true,
-      repeat: 4, ease: "none",
+      opacity: 0, duration: 0.3, yoyo: true, repeat: 5, ease: "none",
     }, 0.8);
+    tl.to("#s9-draft-text", {
+      duration: 1.3, text: "I can't even right now \u{1F624}", ease: "none",
+    }, 0.9);
 
-    // Pause hand
-    tl.to("#s9-pause-hand", { opacity: 1, scale: 1,
-      duration: 0.5, ease: E.elastic }, 1.4);
+    // ~2.3s — "...it is worth asking a few simple questions."
+    // A pause hand interrupts the typing before it's posted.
+    tl.to("#s9-cursor",      { opacity: 0, duration: 0.2 }, 2.3);
+    tl.to("#s9-pause-hand",  { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.elastic }, 2.3);
+    tl.to("#s9-pause-hand",  { opacity: 0, scale: 0.8,
+      duration: 0.4, ease: E.inOut }, 3.1);
+    tl.to("#s9-ask-label",   { opacity: 0.9, duration: 0.4, ease: E.out }, 3.1);
 
-    // Question cards slide in one by one
-    tl.to(".s9-question", { opacity: 1, x: 0,
-      stagger: 0.4, duration: 0.5, ease: E.out }, 2.0);
+    // ~3.6s — "Would I be comfortable if my family saw this?"
+    tl.to("#s9-q-0", { opacity: 1, x: 0, duration: 0.5, ease: E.out }, 3.6);
 
-    // THINK stamp slams in
+    // ~6.6s — "Would I be comfortable if a future employer saw this?"
+    tl.to("#s9-q-1", { opacity: 1, x: 0, duration: 0.5, ease: E.out }, 6.6);
+
+    // ~10.0s — "Would I still be proud of this post five years from now?"
+    tl.to("#s9-q-2", { opacity: 1, x: 0, duration: 0.5, ease: E.out }, 10.0);
+
+    // Questions breathe gently once all three have landed
+    tl.to(".s9-question", {
+      x: 4, duration: 1.8, yoyo: true, repeat: -1,
+      ease: "sine.inOut", stagger: { amount: 0.6 },
+    }, 11.0);
+
+    // ~13.5s — "If the answer is no, it may be worth reconsidering before
+    // pressing the 'Post' button." The header clears and a hand hesitates
+    // right over POST while it glows amber in warning.
+    tl.to("#s9-ask-label", { opacity: 0, duration: 0.3 }, 13.4);
+    tl.to("#s9-pause-hand-2", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.elastic }, 13.6);
+    tl.to("#s9-reconsider-label", { opacity: 1, y: 0,
+      duration: 0.4, ease: E.out }, 13.8);
+    tl.to("#s9-post-btn-glow", {
+      opacity: 0.7, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut",
+    }, 13.8);
+
+    // ~17.3s — Hand retracts, the moment resolves
+    tl.to("#s9-pause-hand-2",     { opacity: 0, scale: 0.7,
+      duration: 0.4, ease: E.inOut }, 17.0);
+    tl.to("#s9-reconsider-label", { opacity: 0, y: -6,
+      duration: 0.4, ease: E.inOut }, 17.0);
+
+    // THINK stamp slams in to punctuate the whole beat
     tl.to("#s9-think-stamp", { opacity: 1, scale: 1,
-      duration: 0.45, ease: E.back }, 3.4);
-
-    // Stamp shakes for emphasis
+      duration: 0.45, ease: E.back }, 17.5);
     tl.to("#s9-think-stamp", {
       x: 4, duration: 0.05, yoyo: true, repeat: 3, ease: "none",
-    }, 3.85);
+    }, 17.95);
+
+    // Slow breathing hold for the remainder of the scene
+    tl.to("#s9-think-stamp", {
+      scale: 1.03, duration: 2.2, yoyo: true, repeat: -1, ease: "sine.inOut",
+    }, 18.4);
 
     return tl;
   },
@@ -1892,7 +2400,13 @@ SceneControllers[9] = {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SCENE 10  —  Technology Is a Tool  (5:30 – 6:05)
-   VO: "But technology itself is not the problem..."
+   VO: "But technology itself is not the problem. Social media, artificial
+        intelligence, and online platforms have transformed education,
+        communication, creativity, and innovation. They provide incredible
+        opportunities to learn, connect, and express ourselves. However,
+        these tools must be used responsibly. Digital literacy is not only
+        about knowing how to use technology—it is also about understanding
+        the consequences of our actions in digital spaces."
    ═══════════════════════════════════════════════════════════════════════════════ */
 SceneControllers[10] = {
 
@@ -1900,13 +2414,27 @@ SceneControllers[10] = {
     // Target: #s10-device-wrap  (class="scene__device-wrap" id="s10-device-wrap" in index.html)
     const el = qs("#s10-device-wrap");
     if (!el) { console.warn("[Scene 10] #s10-device-wrap not found"); return; }
+    // FIX: index.html's .scene__device-wrap defaults to opacity:0 (same
+    // pre-existing issue as Scene 9 — see note there). Force it visible.
+    gsap.set(el, { opacity: 1 });
+
+    // Four benefits, fanned out below the device — matches the VO's own
+    // list: "...transformed education, communication, creativity, and innovation."
+    const benefits = [
+      { x: 85,  y: 350, icon: "📚", label: "Education",     color: C.blue   },
+      { x: 160, y: 380, icon: "💬", label: "Communication", color: C.teal   },
+      { x: 245, y: 380, icon: "💡", label: "Creativity",    color: C.amber  },
+      { x: 320, y: 350, icon: "🚀", label: "Innovation",    color: C.purple },
+    ];
 
     el.innerHTML = `
       <svg id="s10-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
            width="405" height="720">
 
-        <!-- Wrench/tool icon -->
-        <g id="s10-tool-icon" transform="translate(202,200)">
+        <!-- Wrench/tool icon — "technology itself" -->
+        <g id="s10-tool-icon" transform="translate(202,170)">
+          <circle id="s10-icon-halo"   cx="0" cy="-40" r="50" fill="${C.blue}"  opacity="0.12"/>
+          <circle id="s10-icon-halo-2" cx="0" cy="-40" r="50" fill="${C.amber}" opacity="0"/>
           <path d="M -14,-70 L -14,-20 L 14,-20 L 14,-70
                    Q 14,-85 0,-85 Q -14,-85 -14,-70 Z"
                 fill="${C.blue}" opacity="0.8"/>
@@ -1918,59 +2446,73 @@ SceneControllers[10] = {
                   fill="none" stroke="${C.blue}" stroke-width="1" opacity="0.25"/>
         </g>
 
-        <!-- Scale pivot -->
-        <line id="s10-scale-pivot" x1="202" y1="310" x2="202" y2="370"
-              stroke="${C.muted}" stroke-width="2" opacity="0"/>
-        <!-- Balance bar -->
-        <line id="s10-scale-bar"   x1="100" y1="370" x2="304" y2="370"
-              stroke="${C.muted}" stroke-width="2.5" opacity="0"/>
-
-        <!-- Bad-use pan (left) -->
-        <g id="s10-bad-pan" transform="translate(100,415)">
-          <ellipse cx="0" cy="0" rx="40" ry="8"
-                   fill="${C.red}" opacity="0.2"
-                   stroke="${C.red}" stroke-width="1"/>
-          <text y="26" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.red}" text-anchor="middle">Bad Use</text>
-          <text y="-14" font-size="18" text-anchor="middle">⚠️</text>
-        </g>
-
-        <!-- Good-use pan (right) -->
-        <g id="s10-good-pan" transform="translate(304,395)">
-          <ellipse cx="0" cy="0" rx="40" ry="8"
-                   fill="${C.teal}" opacity="0.2"
-                   stroke="${C.teal}" stroke-width="1"/>
-          <text y="26" font-family="Inter,sans-serif" font-size="8"
-                fill="${C.teal}" text-anchor="middle">Good Use</text>
-          <text y="-14" font-size="18" text-anchor="middle">✅</text>
-        </g>
-
-        <!-- Tool examples grid -->
-        ${[
-          { x: 90,  y: 510, icon: "📱", label: "Social Media" },
-          { x: 160, y: 510, icon: "🔍", label: "Search"       },
-          { x: 230, y: 510, icon: "📧", label: "Email"        },
-          { x: 300, y: 510, icon: "🤖", label: "AI Tools"     },
-          { x: 90,  y: 570, icon: "📸", label: "Camera"       },
-          { x: 160, y: 570, icon: "🎮", label: "Gaming"       },
-          { x: 230, y: 570, icon: "📺", label: "Streaming"    },
-          { x: 300, y: 570, icon: "💬", label: "Messaging"    },
-        ].map(t => `
-          <g class="s10-tool-item" opacity="0" transform="translate(${t.x},${t.y})">
-            <text font-size="18" text-anchor="middle">${t.icon}</text>
-            <text y="22" font-family="Inter,sans-serif" font-size="7"
-                  fill="${C.muted}" text-anchor="middle">${t.label}</text>
-          </g>`).join("")}
-
-        <!-- Core message -->
-        <g id="s10-message" opacity="0" transform="translate(202,648)">
+        <!-- "Not the problem" reframe, right alongside the tool -->
+        <g id="s10-not-problem" opacity="0" transform="translate(202,250)">
           <text font-family="'Space Grotesk',sans-serif" font-size="13"
                 fill="${C.white}" text-anchor="middle" font-weight="700">
-            The tool isn't the problem.
+            Not the problem.
           </text>
-          <text y="20" font-family="Inter,sans-serif" font-size="9"
+        </g>
+
+        <!-- Quick flash of the platforms named in the VO -->
+        <g id="s10-platform-row" opacity="0" transform="translate(202,250)">
+          <text x="-44" font-size="20" text-anchor="middle">📱</text>
+          <text x="0"   font-size="20" text-anchor="middle">🤖</text>
+          <text x="44"  font-size="20" text-anchor="middle">🌐</text>
+        </g>
+
+        <!-- Beam lines radiating from the device to each benefit -->
+        ${benefits.map((b, i) => `
+          <line class="s10-beam-line" id="s10-beam-${i}"
+                x1="202" y1="170" x2="${b.x}" y2="${b.y - 18}"
+                stroke="${b.color}" stroke-width="1" opacity="0"/>
+        `).join("")}
+
+        <!-- Benefit items: Education / Communication / Creativity / Innovation -->
+        ${benefits.map((b, i) => `
+          <g class="s10-benefit" id="s10-benefit-${i}"
+             opacity="0" transform="translate(${b.x},${b.y})">
+            <circle r="28" fill="#0E0E1C" stroke="${b.color}" stroke-width="1.2"/>
+            <text y="-2" font-size="18" text-anchor="middle">${b.icon}</text>
+            <text y="44" font-family="Inter,sans-serif" font-size="9"
+                  fill="${b.color}" text-anchor="middle" font-weight="600">${b.label}</text>
+          </g>
+        `).join("")}
+
+        <!-- "Opportunities to learn, connect, express" caption -->
+        <g id="s10-caption" opacity="0" transform="translate(202,452)">
+          <text font-family="Inter,sans-serif" font-size="10.5"
                 fill="${C.muted}" text-anchor="middle">
-            How you use it is.
+            Real opportunities to learn, connect,
+          </text>
+          <text y="16" font-family="Inter,sans-serif" font-size="10.5"
+                fill="${C.muted}" text-anchor="middle">
+            and express yourself.
+          </text>
+        </g>
+
+        <!-- "However...used responsibly" warning beat -->
+        <g id="s10-responsibly" opacity="0" transform="translate(202,510)">
+          <rect x="-95" y="-18" width="190" height="36" rx="18"
+                fill="rgba(239,159,39,0.08)" stroke="${C.amber}" stroke-width="1"/>
+          <text y="5" font-family="'Space Grotesk',sans-serif" font-size="12"
+                fill="${C.amber}" text-anchor="middle" font-weight="700"
+                letter-spacing="0.5">…USED RESPONSIBLY</text>
+        </g>
+
+        <!-- Core message — digital literacy is also about consequences -->
+        <g id="s10-message" opacity="0" transform="translate(202,600)">
+          <text font-family="'Space Grotesk',sans-serif" font-size="15"
+                fill="${C.white}" text-anchor="middle" font-weight="700">
+            Digital literacy isn't just
+          </text>
+          <text y="22" font-family="'Space Grotesk',sans-serif" font-size="15"
+                fill="${C.white}" text-anchor="middle" font-weight="700">
+            knowing how to use it.
+          </text>
+          <text y="50" font-family="Inter,sans-serif" font-size="10.5"
+                fill="${C.amber}" text-anchor="middle" font-weight="600">
+            It's understanding the consequences.
           </text>
         </g>
 
@@ -1978,40 +2520,78 @@ SceneControllers[10] = {
 
     gsap.set("#s10-tool-icon", { opacity: 0, rotation: -30, scale: 0.6,
       transformOrigin: "center center" });
-    gsap.set(["#s10-scale-pivot", "#s10-scale-bar"], { opacity: 0 });
-    gsap.set(["#s10-bad-pan",  "#s10-good-pan"],     { opacity: 0, y: 16 });
-    gsap.set(".s10-tool-item", { opacity: 0, y: 10, scale: 0.7,
+    gsap.set("#s10-icon-halo-2", { opacity: 0 });
+    gsap.set("#s10-not-problem",  { opacity: 0, y: 6 });
+    gsap.set("#s10-platform-row", { opacity: 0, y: 6 });
+    gsap.set(".s10-beam-line",    { opacity: 0 });
+    gsap.set(".s10-benefit",      { opacity: 0, scale: 0.5,
       transformOrigin: "center center" });
-    gsap.set("#s10-message",   { opacity: 0, y: 12 });
+    gsap.set("#s10-caption",      { opacity: 0, y: 10 });
+    gsap.set("#s10-responsibly",  { opacity: 0, scale: 0.85,
+      transformOrigin: "center center" });
+    gsap.set("#s10-message",      { opacity: 0, y: 12 });
   },
 
   play() {
     // TIMESTAMP: 5:30
     const tl = gsap.timeline({ id: "scene-10" });
 
+    // ~0.0s — "But technology itself is not the problem."
     tl.to("#s10-tool-icon", { opacity: 1, rotation: 0, scale: 1,
       duration: 0.9, ease: E.back }, 0);
+    tl.to("#s10-not-problem", { opacity: 1, y: 0,
+      duration: 0.5, ease: E.out }, 0.7);
+    tl.to("#s10-not-problem", { opacity: 0, y: -6,
+      duration: 0.4, ease: E.inOut }, 2.0);
 
-    tl.to(["#s10-scale-pivot", "#s10-scale-bar"], { opacity: 0.6,
-      duration: 0.5, ease: E.out }, 0.8);
+    // ~2.4s — "Social media, artificial intelligence, and online platforms..."
+    tl.to("#s10-platform-row", { opacity: 1, y: 0,
+      duration: 0.5, ease: E.out }, 2.4);
+    tl.to("#s10-platform-row", { opacity: 0, duration: 0.4 }, 3.6);
 
-    tl.to(["#s10-bad-pan", "#s10-good-pan"], { opacity: 1, y: 0,
-      stagger: 0.2, duration: 0.5, ease: E.back }, 1.2);
+    // ~3.6s–8.0s — "...have transformed education, communication, creativity,
+    // and innovation." Beams + benefit items bloom one by one.
+    const benefitTimes = [3.8, 5.0, 6.2, 7.4];
+    benefitTimes.forEach((t, i) => {
+      tl.to(`#s10-beam-${i}`,    { opacity: 0.5, duration: 0.4, ease: E.out }, t);
+      tl.to(`#s10-benefit-${i}`, { opacity: 1, scale: 1,
+        duration: 0.45, ease: E.back }, t + 0.1);
+    });
 
-    // Scale tilts — good side wins
-    tl.to("#s10-scale-bar", {
-      rotation: -6, transformOrigin: "center center",
-      duration: 1.0, ease: E.inOut,
-    }, 1.8);
-    tl.to("#s10-good-pan", { y: -12, duration: 1.0, ease: E.inOut }, 1.8);
-    tl.to("#s10-bad-pan",  { y:  12, duration: 1.0, ease: E.inOut }, 1.8);
+    // Gentle float once all four have landed
+    tl.to(".s10-benefit", {
+      y: -4, duration: 1.8, yoyo: true, repeat: -1,
+      ease: "sine.inOut", stagger: { amount: 0.6 },
+    }, 8.5);
 
-    tl.to(".s10-tool-item", { opacity: 1, y: 0, scale: 1,
-      stagger: { amount: 0.6 },
-      duration: 0.35, ease: E.back }, 2.4);
+    // ~8.8s — "They provide incredible opportunities to learn, connect,
+    // and express ourselves."
+    tl.to("#s10-caption", { opacity: 1, y: 0,
+      duration: 0.7, ease: E.out }, 8.8);
 
+    // ~12.5s — "However, these tools must be used responsibly."
+    // The icon's glow flips from cool blue to a cautionary amber.
+    tl.to("#s10-icon-halo",   { opacity: 0,    duration: 0.6, ease: E.inOut }, 12.5);
+    tl.to("#s10-icon-halo-2", { opacity: 0.18, duration: 0.6, ease: E.inOut }, 12.5);
+    tl.to("#s10-responsibly", { opacity: 1, scale: 1,
+      duration: 0.5, ease: E.back }, 12.7);
+
+    // ~15.5s–22.5s — "Digital literacy is not only about knowing how to use
+    // technology—it is also about understanding the consequences..."
+    tl.to("#s10-responsibly", { opacity: 0, scale: 0.9,
+      duration: 0.4, ease: E.inOut }, 15.3);
     tl.to("#s10-message", { opacity: 1, y: 0,
-      duration: 0.7, ease: E.out }, 3.2);
+      duration: 0.8, ease: E.out }, 15.7);
+
+    // Icon settles back to its calm blue once the thought resolves
+    tl.to("#s10-icon-halo",   { opacity: 0.12, duration: 1.0, ease: E.inOut }, 18.0);
+    tl.to("#s10-icon-halo-2", { opacity: 0,    duration: 1.0, ease: E.inOut }, 18.0);
+
+    // Slow breathing hold for the remainder of the scene
+    tl.to("#s10-message", {
+      scale: 1.02, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut",
+      transformOrigin: "center center",
+    }, 19.0);
 
     return tl;
   },
@@ -2144,11 +2724,24 @@ SceneControllers[11] = {
 SceneControllers[12] = {
 
   init() {
-    // Target: #s12-phone  (class="scene__tiktok-phone" id="s12-phone" in index.html)
-    const el = qs("#s12-phone");
-    if (!el) { console.warn("[Scene 12] #s12-phone not found"); return; }
+    // FIX: previously injected a 405×720 SVG into #s12-phone, which is a
+    // 220px-wide .scene__tiktok-phone div — so the title card text at x=202
+    // and everything wider than 220px got clipped. Now inject into #scene-12
+    // (the full-canvas section) and hide the legacy phone div.
+    const scene = qs("#scene-12");
+    if (!scene) { console.warn("[Scene 12] #scene-12 not found"); return; }
 
-    el.innerHTML = `
+    const prev = scene.querySelector("#s12-svg");
+    if (prev) prev.remove();
+
+    // Hide legacy phone div and whiteout/title elements so they don't
+    // overlap our injected SVG layers
+    ["#s12-phone", "#s12-whiteout", "#s12-title"].forEach(sel => {
+      const el = scene.querySelector(sel);
+      if (el) el.style.display = "none";
+    });
+
+    scene.insertAdjacentHTML("afterbegin", `
       <svg id="s12-svg" viewBox="0 0 405 720" xmlns="http://www.w3.org/2000/svg"
            width="405" height="720">
 
@@ -2257,7 +2850,7 @@ SceneControllers[12] = {
         <!-- Debris particle host -->
         <g id="s12-debris" transform="translate(202,300)"/>
 
-      </svg>`;
+      </svg>`);
 
     gsap.set("#s12-tiktok-phone", { opacity: 0, y: 40, scale: 0.9,
       transformOrigin: "center center" });
